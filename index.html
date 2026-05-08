@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>OpoRail</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --bg: #eef2f7;
+      --surface: #ffffff;
+      --surface-soft: #f8fafc;
+      --text: #111827;
+      --muted: #5b6472;
+      --border: #dbe3ef;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --secondary: #263244;
+      --secondary-hover: #111827;
+      --danger: #dc2626;
+      --shadow: 0 14px 35px rgba(15, 23, 42, 0.10);
+    }
+    body.dark {
+      --bg: #0f172a;
+      --surface: #111827;
+      --surface-soft: #172033;
+      --text: #f8fafc;
+      --muted: #a7b0c0;
+      --border: #2b364a;
+      --primary: #60a5fa;
+      --primary-hover: #3b82f6;
+      --secondary: #334155;
+      --secondary-hover: #475569;
+      --danger: #f87171;
+      --shadow: 0 18px 45px rgba(0, 0, 0, 0.30);
+    }
+    * { box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; max-width: 920px; margin: 0 auto; padding: 24px; background: var(--bg); color: var(--text); transition: background 0.2s, color 0.2s; }
+    .app-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin: 12px 0 22px; }
+    .brand-title { display: flex; align-items: center; gap: 12px; }
+    .brand-mark { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 8px; background: linear-gradient(135deg, var(--primary), #22c55e); color: white; font-weight: 800; }
+    .brand-copy h1 { font-size: 28px; margin: 0; }
+    .brand-copy p { color: var(--muted); margin: 4px 0 0; font-size: 14px; }
+    .theme-toggle { width: auto; min-width: 120px; padding: 10px 14px; margin: 0; background: var(--surface); color: var(--text); border: 1px solid var(--border); box-shadow: none; }
+    .theme-toggle:hover { background: var(--surface-soft); }
+    .card { background: var(--surface); padding: 22px; margin: 18px 0; border-radius: 8px; border: 1px solid var(--border); box-shadow: var(--shadow); }
+    h1 { font-size: 24px; }
+    h2 { font-size: 20px; margin: 0 0 12px; }
+    p { color: var(--text); }
+    button { background: var(--primary); color: white; border: none; padding: 12px 20px; margin: 6px 0; width: 100%; font-size: 16px; cursor: pointer; border-radius: 8px; font-weight: 700; }
+    button:hover { background: var(--primary-hover); }
+    .grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+    @media (min-width: 500px) { .grid { grid-template-columns: 1fr 1fr; } }
+    .category-button { display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: left; }
+    .category-count { flex: none; padding: 4px 8px; border-radius: 999px; background: rgba(255,255,255,0.18); color: white; font-size: 12px; font-weight: 800; white-space: nowrap; }
+    .category-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 16px; }
+    .summary-stat { background: var(--surface-soft); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+    .summary-stat strong { display: block; font-size: 22px; color: var(--text); }
+    .summary-stat span { color: var(--muted); font-size: 13px; }
+    .profile-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--surface-soft); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin-bottom: 18px; }
+    .profile-bar strong { color: var(--text); }
+    .profile-actions { display: flex; gap: 8px; }
+    .small-button { width: auto; margin: 0; padding: 9px 12px; font-size: 14px; }
+    .profile-list { display: grid; gap: 10px; margin: 16px 0; }
+    .profile-choice { background: var(--surface-soft); color: var(--text); border: 1px solid var(--border); text-align: left; }
+    .profile-form { display: flex; gap: 10px; margin-top: 16px; }
+    .profile-form input { flex: 1; min-width: 0; padding: 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-soft); color: var(--text); font-size: 16px; }
+    .profile-form button { width: auto; margin: 0; }
+    .hidden { display: none; }
+    .timer { font-size: 32px; font-weight: bold; color: var(--primary); text-align: center; margin: 20px 0; }
+    .question { font-size: 16px; margin: 15px 0; }
+    .option { padding: 12px; margin: 6px 0; background: var(--surface-soft); border: 2px solid var(--border); cursor: pointer; border-radius: 8px; text-align: left; font-size: 15px; color: var(--text); }
+    .option:hover { background: var(--border); }
+    .muted { color: var(--muted); font-size: 14px; line-height: 1.4; }
+    .secondary { background: var(--secondary); }
+    .secondary:hover { background: var(--secondary-hover); }
+    .loading { text-align: center; color: var(--text); font-weight: bold; }
+    .progress-list { display: grid; gap: 10px; margin: 15px 0; }
+    .progress-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; }
+    .progress-track { grid-column: 1 / -1; height: 8px; background: var(--border); border-radius: 999px; overflow: hidden; }
+    .progress-bar { height: 100%; background: var(--primary); }
+    .mode-card { border-color: rgba(220, 38, 38, 0.45); }
+    .danger-button { background: var(--danger); }
+    .danger-button:hover { background: #b91c1c; }
+    @media (max-width: 560px) {
+      body { padding: 16px; }
+      .app-header { align-items: flex-start; flex-direction: column; }
+      .theme-toggle { width: 100%; }
+      .category-summary { grid-template-columns: 1fr; }
+      .profile-bar, .profile-form { align-items: stretch; flex-direction: column; }
+      .profile-actions { display: grid; grid-template-columns: 1fr 1fr; }
+      .profile-form button { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="profile-screen" class="hidden">
+  <div class="app-header">
+    <div class="brand-title">
+      <div class="brand-mark">OR</div>
+      <div class="brand-copy">
+        <h1>OpoRail</h1>
+        <p>Elige quién va a entrenar para separar resultados y fallos.</p>
+      </div>
+    </div>
+    <button id="theme-toggle-profile" class="theme-toggle" onclick="toggleTheme()">Modo oscuro</button>
+  </div>
+  <div class="card">
+    <h2>Perfiles</h2>
+    <p class="muted">Cada perfil guarda su historial, estadísticas y repaso de fallos por separado.</p>
+    <div id="profile-list" class="profile-list"></div>
+    <div class="profile-form">
+      <input id="new-profile-name" type="text" placeholder="Nombre del perfil" maxlength="30">
+      <button onclick="createProfile()">Crear perfil</button>
+    </div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="app-header">
+    <div class="brand-title">
+      <div class="brand-mark">OR</div>
+      <div class="brand-copy">
+        <h1>OpoRail</h1>
+        <p>Entrena, mide tu progreso y repasa tus fallos.</p>
+      </div>
+    </div>
+    <button id="theme-toggle" class="theme-toggle" onclick="toggleTheme()">Modo oscuro</button>
+  </div>
+  <div class="profile-bar">
+    <div>
+      <span class="muted">Perfil activo</span><br>
+      <strong id="current-profile-label">Sin perfil</strong>
+    </div>
+    <div class="profile-actions">
+      <button class="small-button secondary" onclick="showProfileScreen()">Cambiar</button>
+      <button class="small-button" onclick="renameCurrentProfile()">Renombrar</button>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Entrenamiento</h2>
+    <div class="grid">
+      <button class="category-button" onclick="startTest('Actividad Comercial', 20, 15)"><span>Actividad Comercial</span><span class="category-count" data-category-count="Actividad Comercial">...</span></button>
+      <button class="category-button" onclick="startTest('Conocimientos Ferroviarios', 20, 15)"><span>Conocimientos Ferroviarios</span><span class="category-count" data-category-count="Conocimientos Ferroviarios">...</span></button>
+      <button class="category-button" onclick="startTest('Cultura de la Seguridad', 20, 15)"><span>Cultura de la Seguridad</span><span class="category-count" data-category-count="Cultura de la Seguridad">...</span></button>
+      <button class="category-button" onclick="startTest('Experiencia de Cliente', 20, 15)"><span>Experiencia de Cliente</span><span class="category-count" data-category-count="Experiencia de Cliente">...</span></button>
+      <button class="category-button" onclick="startTest('II Plan de Igualdad', 20, 15)"><span>II Plan de Igualdad</span><span class="category-count" data-category-count="II Plan de Igualdad">...</span></button>
+      <button class="category-button" onclick="startTest('Numérico', 20, 15)"><span>Numérico</span><span class="category-count" data-category-count="Numérico">...</span></button>
+      <button class="category-button" onclick="startTest('Verbal', 20, 15)"><span>Verbal</span><span class="category-count" data-category-count="Verbal">...</span></button>
+      <button class="category-button" onclick="startTest('Series de Figuras', 20, 15)"><span>Series de Figuras</span><span class="category-count" data-category-count="Series de Figuras">...</span></button>
+      <button class="category-button" onclick="startTest('Atención', 20, 15)"><span>Atención</span><span class="category-count" data-category-count="Atención">...</span></button>
+    </div>
+    <div class="category-summary">
+      <div class="summary-stat"><strong id="total-question-count">...</strong><span>preguntas disponibles</span></div>
+      <div class="summary-stat"><strong id="largest-category-count">...</strong><span>categoría con más preguntas</span></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Simulacro de Examen</h2>
+    <p>60 preguntas en 30 minutos</p>
+    <button onclick="startSimulacro()">Iniciar Simulacro</button>
+  </div>
+  <div class="card">
+    <h2>Repaso Inteligente</h2>
+    <p class="muted">Vuelve a practicar solo las preguntas que has fallado en tests anteriores.</p>
+    <button class="secondary" onclick="startMistakeReview()">Repasar mis fallos</button>
+  </div>
+  <div class="card mode-card">
+    <h2 style="color: var(--danger);">🔥 Modo Supervivencia</h2>
+    <p>30 segundos por pregunta. ¡Un error y GAME OVER!</p>
+    <button class="danger-button" onclick="startSurvival()">Iniciar Supervivencia</button>
+  </div>
+  <div class="card">
+    <h2>Mi Perfil</h2>
+    <div id="stats"></div>
+  </div>
+</div>
+
+<div id="loading" class="hidden">
+  <div class="card loading" id="loading-text">Cargando...</div>
+</div>
+
+<div id="test" class="hidden">
+  <div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <h2 id="test-title"></h2>
+      <div id="timer" class="timer">00:00</div>
+    </div>
+    <div id="counter" style="color: #666; margin: 10px 0;"></div>
+    <div id="question" class="question"></div>
+    <div id="options"></div>
+    <button onclick="backHome()" style="margin-top: 20px; background: #666;">Volver</button>
+  </div>
+</div>
+
+<div id="results" class="hidden">
+  <div class="card">
+    <h2>Resultados</h2>
+    <div id="results-content"></div>
+    <button onclick="backHome()" style="margin-top: 20px;">Volver</button>
+  </div>
+</div>
+
+<div id="test-details" class="hidden">
+  <div class="card">
+    <h2 id="details-title">Detalles del Test</h2>
+    <div id="details-content"></div>
+    <button onclick="backToProfile()" style="margin-top: 20px; background: #666;">Volver al Perfil</button>
+  </div>
+</div>
+
+<script>
+var supabaseUrl = 'https://kxhtiqaupfodbxskcjox.supabase.co';
+var supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt4aHRpcWF1cGZvZGJ4c2tjam94Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5NjYwMzUsImV4cCI6MjA5MzU0MjAzNX0.Frwfdt6weBnyltD9G3y6wID5c9n6r1t6gTALsGTdbUA';
+
+var client = null;
+var currentTest = null;
+var timerInterval = null;
+var lastResults = [];
+var currentProfile = null;
+var profileColumnAvailable = true;
+var temarioCategories = ['Actividad Comercial', 'Conocimientos Ferroviarios', 'Cultura de la Seguridad', 'Experiencia de Cliente', 'II Plan de Igualdad'];
+var allCategories = ['Actividad Comercial', 'Conocimientos Ferroviarios', 'Cultura de la Seguridad', 'Experiencia de Cliente', 'II Plan de Igualdad', 'Numérico', 'Verbal', 'Series de Figuras', 'Atención'];
+var categoryDbNames = {
+  'Cultura de la Seguridad': 'Cultura de Seguridad'
+};
+
+function getDbCategoryName(cat) {
+  return categoryDbNames[cat] || cat;
+}
+
+function hideAllScreens() {
+  document.getElementById('profile-screen').className = 'hidden';
+  document.getElementById('app').className = 'hidden';
+  document.getElementById('test').className = 'hidden';
+  document.getElementById('results').className = 'hidden';
+  document.getElementById('test-details').className = 'hidden';
+  document.getElementById('loading').className = 'hidden';
+  var gameOverDiv = document.getElementById('game-over');
+  if (gameOverDiv) gameOverDiv.className = 'hidden';
+  var victoryDiv = document.getElementById('victory');
+  if (victoryDiv) victoryDiv.className = 'hidden';
+}
+
+function setLoading(message) {
+  if (timerInterval) clearInterval(timerInterval);
+  hideAllScreens();
+  document.getElementById('loading-text').textContent = message || 'Cargando...';
+  document.getElementById('loading').className = '';
+}
+
+function shuffle(items) {
+  var i, j, temp;
+  for (i = items.length - 1; i > 0; i--) {
+    j = Math.floor(Math.random() * (i + 1));
+    temp = items[i];
+    items[i] = items[j];
+    items[j] = temp;
+  }
+  return items;
+}
+
+function getQuestionText(q) {
+  return q.enunciado || q.pregunta || 'Pregunta sin enunciado';
+}
+
+function formatDuration(seconds) {
+  seconds = Math.max(0, Math.floor(seconds || 0));
+  var m = Math.floor(seconds / 60);
+  var s = seconds % 60;
+  if (m <= 0) return s + ' s';
+  if (s === 0) return m + ' min';
+  return m + ' min ' + s + ' s';
+}
+
+function startLoadedTest(cat, questions, seconds, options) {
+  currentTest = {
+    questions: shuffle(questions).slice(0, questions.length),
+    index: 0,
+    score: 0,
+    cat: cat,
+    time: seconds,
+    duration: seconds,
+    survival: options && options.survival,
+    answers: []
+  };
+  showTest();
+  if (currentTest.survival) startSurvivalTimer();
+  else startTimer();
+}
+
+function applyTheme(theme) {
+  var isDark = theme === 'dark';
+  document.body.className = isDark ? 'dark' : '';
+  var toggle = document.getElementById('theme-toggle');
+  if (toggle) toggle.textContent = isDark ? 'Modo claro' : 'Modo oscuro';
+  var profileToggle = document.getElementById('theme-toggle-profile');
+  if (profileToggle) profileToggle.textContent = isDark ? 'Modo claro' : 'Modo oscuro';
+}
+
+function toggleTheme() {
+  var nextTheme = document.body.className === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('oporail-theme', nextTheme);
+  applyTheme(nextTheme);
+}
+
+function init() {
+  client = supabase.createClient(supabaseUrl, supabaseKey);
+  applyTheme(localStorage.getItem('oporail-theme') || 'light');
+  currentProfile = localStorage.getItem('oporail-current-profile');
+  loadQuestionCounts();
+  if (currentProfile) showAppForProfile();
+  else showProfileScreen();
+}
+
+function getProfiles() {
+  try {
+    return JSON.parse(localStorage.getItem('oporail-profiles') || '[]');
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveProfiles(profiles) {
+  localStorage.setItem('oporail-profiles', JSON.stringify(profiles));
+}
+
+function showProfileScreen() {
+  if (timerInterval) clearInterval(timerInterval);
+  hideAllScreens();
+  renderProfileList();
+  document.getElementById('profile-screen').className = '';
+}
+
+function renderProfileList() {
+  var profiles = getProfiles();
+  var list = document.getElementById('profile-list');
+  if (profiles.length === 0) {
+    list.innerHTML = '<p class="muted">Todavía no hay perfiles. Crea uno para empezar.</p>';
+    return;
+  }
+  var html = '';
+  profiles.forEach(function(profile) {
+    html += '<button class="profile-choice" onclick="selectProfile(&quot;' + encodeURIComponent(profile) + '&quot;)">' + profile + '</button>';
+  });
+  list.innerHTML = html;
+}
+
+function createProfile() {
+  var input = document.getElementById('new-profile-name');
+  var name = (input.value || '').trim();
+  if (!name) {
+    alert('Escribe un nombre para el perfil.');
+    return;
+  }
+  var profiles = getProfiles();
+  if (profiles.indexOf(name) === -1) {
+    profiles.push(name);
+    profiles.sort();
+    saveProfiles(profiles);
+  }
+  input.value = '';
+  selectProfile(encodeURIComponent(name));
+}
+
+function selectProfile(encodedName) {
+  currentProfile = decodeURIComponent(encodedName);
+  localStorage.setItem('oporail-current-profile', currentProfile);
+  showAppForProfile();
+}
+
+function showAppForProfile() {
+  hideAllScreens();
+  document.getElementById('current-profile-label').textContent = currentProfile || 'Sin perfil';
+  document.getElementById('app').className = '';
+  loadStats();
+}
+
+function renameCurrentProfile() {
+  if (!currentProfile) return;
+  var nextName = prompt('Nuevo nombre para el perfil:', currentProfile);
+  if (!nextName) return;
+  nextName = nextName.trim();
+  if (!nextName) return;
+  var profiles = getProfiles();
+  var index = profiles.indexOf(currentProfile);
+  if (index !== -1) profiles[index] = nextName;
+  if (profiles.indexOf(nextName) === -1) profiles.push(nextName);
+  profiles = profiles.filter(function(profile, i) { return profiles.indexOf(profile) === i; }).sort();
+  saveProfiles(profiles);
+  currentProfile = nextName;
+  localStorage.setItem('oporail-current-profile', currentProfile);
+  showAppForProfile();
+}
+
+function resultsQuery() {
+  var query = client.from('resultados').select('*').order('fecha', { ascending: false });
+  if (currentProfile && profileColumnAvailable) query = query.eq('perfil', currentProfile);
+  return query;
+}
+
+function resultPayload(base) {
+  if (profileColumnAvailable) base.perfil = currentProfile || 'Sin perfil';
+  return base;
+}
+
+function handleProfileColumnError(err) {
+  if (err && err.message && err.message.indexOf('perfil') !== -1) {
+    profileColumnAvailable = false;
+    return true;
+  }
+  return false;
+}
+
+function loadQuestionCounts() {
+  var counts = {};
+  var completed = 0;
+  allCategories.forEach(function(cat) {
+    client.from('preguntas').select('id', { count: 'exact', head: true }).eq('categoria', getDbCategoryName(cat)).then(function(res) {
+      counts[cat] = res.count || 0;
+      completed++;
+      if (completed === allCategories.length) renderQuestionCounts(counts);
+    }).catch(function(err) {
+      console.error('Error contando preguntas:', err);
+      counts[cat] = null;
+      completed++;
+      if (completed === allCategories.length) renderQuestionCounts(counts);
+    });
+  });
+}
+
+function renderQuestionCounts(counts) {
+  var total = 0;
+  var largestName = '';
+  var largestCount = 0;
+  allCategories.forEach(function(cat) {
+    var count = counts[cat];
+    var badge = document.querySelector('[data-category-count="' + cat + '"]');
+    if (badge) badge.textContent = count === null ? 'Sin datos' : count + ' preg.';
+    if (typeof count === 'number') {
+      total += count;
+      if (count > largestCount) {
+        largestCount = count;
+        largestName = cat;
+      }
+    }
+  });
+  document.getElementById('total-question-count').textContent = total || 'Sin datos';
+  document.getElementById('largest-category-count').textContent = largestName ? largestName + ' · ' + largestCount : 'Sin datos';
+}
+
+function startTest(cat, num, mins) {
+  setLoading('Cargando preguntas de ' + cat + '...');
+  client.from('preguntas').select('*').eq('categoria', getDbCategoryName(cat)).limit(num).then(function(res) {
+    if (res.error || !res.data || res.data.length === 0) {
+      hideAllScreens();
+      document.getElementById('app').className = '';
+      alert('No hay preguntas para: ' + cat);
+      return;
+    }
+    startLoadedTest(cat, res.data.slice(0, num), mins * 60);
+  }).catch(function(err) {
+    console.error('Error:', err);
+    hideAllScreens();
+    document.getElementById('app').className = '';
+    alert('Error cargando preguntas');
+  });
+}
+
+function startSimulacro() {
+  setLoading('Preparando simulacro...');
+  // Fetch questions from TEMARIO categories ONLY (exclude psychometric)
+  var categories = temarioCategories;
+  var allQuestions = [];
+  var completed = 0;
+  
+  // Fetch from each category
+  for (var c = 0; c < categories.length; c++) {
+    (function(cat) {
+      client.from('preguntas').select('*').eq('categoria', getDbCategoryName(cat)).limit(15).then(function(res) {
+        if (res.data && res.data.length > 0) {
+          allQuestions = allQuestions.concat(res.data);
+        }
+        completed++;
+        if (completed === categories.length) {
+          // All fetched
+          if (allQuestions.length === 0) {
+            hideAllScreens();
+            document.getElementById('app').className = '';
+            alert('No hay preguntas para el simulacro');
+            return;
+          }
+          startLoadedTest('Simulacro', allQuestions.slice(0, 60), 30 * 60);
+        }
+      }).catch(function(err) {
+        console.error('Error:', err);
+        completed++;
+        if (completed === categories.length) {
+          if (allQuestions.length > 0) {
+            startLoadedTest('Simulacro', allQuestions.slice(0, 60), 30 * 60);
+          } else {
+            hideAllScreens();
+            document.getElementById('app').className = '';
+            alert('Error cargando preguntas');
+          }
+        }
+      });
+    })(categories[c]);
+  }
+}
+
+function showTest() {
+  hideAllScreens();
+  document.getElementById('test').className = '';
+  var q = currentTest.questions[currentTest.index];
+  document.getElementById('test-title').textContent = currentTest.cat;
+  document.getElementById('counter').textContent = 'Pregunta ' + (currentTest.index + 1) + ' de ' + currentTest.questions.length;
+  document.getElementById('question').textContent = getQuestionText(q);
+  var container = document.getElementById('options');
+  container.innerHTML = '';
+  var letras = ['A', 'B', 'C', 'D'];
+  for (var i = 0; i < letras.length; i++) {
+    var letra = letras[i];
+    var btn = document.createElement('button');
+    btn.className = 'option';
+    btn.textContent = letra + ') ' + q['opcion_' + letra.toLowerCase()];
+    btn.onclick = (function(ltr) {
+      return function() { answer(ltr); }
+    })(letra);
+    container.appendChild(btn);
+  }
+  updateTimer();
+}
+
+function updateTimer() {
+  var m = Math.floor(currentTest.time / 60);
+  var s = currentTest.time % 60;
+  var sStr = s < 10 ? '0' + s : '' + s;
+  document.getElementById('timer').textContent = m + ':' + sStr;
+}
+
+function startTimer() {
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(function() {
+    currentTest.time--;
+    updateTimer();
+    if (currentTest.time <= 0) {
+      clearInterval(timerInterval);
+      finishTest();
+    }
+  }, 1000);
+}
+
+function answer(letra) {
+  var q = currentTest.questions[currentTest.index];
+  var correcta = q.respuesta_correcta;
+  var esCorrecta = letra === correcta;
+  
+  // Guardar respuesta
+  currentTest.answers.push({
+    pregunta_id: q.id,
+    respuesta_usuario: letra,
+    respuesta_correcta: correcta,
+    es_correcta: esCorrecta,
+    pregunta: getQuestionText(q),
+    categoria: q.categoria || currentTest.cat,
+    explicacion: q.explicacion,
+    opciones: [q.opcion_a, q.opcion_b, q.opcion_c, q.opcion_d]
+  });
+  
+  if (currentTest.survival) {
+    // Modo Supervivencia
+    if (!esCorrecta) {
+      gameOver('❌ Respuesta incorrecta');
+      return;
+    }
+    
+    currentTest.score++;
+    var btns = document.querySelectorAll('.option');
+    for (var i = 0; i < btns.length; i++) {
+      btns[i].disabled = true;
+      if (btns[i].textContent[0] === correcta) {
+        btns[i].style.borderColor = '#16a34a';
+        btns[i].style.borderWidth = '3px';
+        btns[i].style.background = '#f0fdf4';
+      }
+    }
+    
+    setTimeout(function() {
+      if (currentTest.index < currentTest.questions.length - 1) {
+        currentTest.index++;
+        currentTest.time = 30;
+        showTest();
+        startSurvivalTimer();
+      } else {
+        // ¡Victoria!
+        clearInterval(timerInterval);
+        document.getElementById('test').className = 'hidden';
+        
+        // Guardar resultado en Supabase
+        client.from('resultados').insert(resultPayload({
+          tipo_test: 'Supervivencia',
+          puntuacion: currentTest.score,
+          total_preguntas: currentTest.questions.length,
+          tiempo_usado: (currentTest.questions.length * 30) + ' seconds',
+          fecha: new Date().toISOString(),
+          detalles: currentTest.answers
+        })).then(function(res) {
+          console.log('Victoria guardada:', res);
+        }).catch(function(err) {
+          console.error('Error guardando victoria:', err);
+        });
+        
+        var html = '<div style="text-align: center; padding: 40px 20px;">';
+        html += '<div style="font-size: 80px; margin-bottom: 20px;">🏆</div>';
+        html += '<h2 style="color: #16a34a; font-size: 32px; margin-bottom: 10px;">¡VICTORIA!</h2>';
+        html += '<p style="font-size: 18px; color: #666; margin-bottom: 20px;">Has superado todas las preguntas</p>';
+        html += '<div style="background: #f0fdf4; padding: 20px; border-radius: 10px; margin: 20px 0;">';
+        html += '<div style="font-size: 48px; font-weight: bold; color: #16a34a;">' + currentTest.score + '</div>';
+        html += '<div style="font-size: 14px; color: #666;">Preguntas acertadas</div>';
+        html += '</div>';
+        html += '<button onclick="backHome()" style="background: #666; margin-top: 20px;">Volver al inicio</button>';
+        html += '</div>';
+        
+        var victoryDiv = document.getElementById('victory');
+        if (!victoryDiv) {
+          victoryDiv = document.createElement('div');
+          victoryDiv.id = 'victory';
+          document.body.appendChild(victoryDiv);
+        }
+        victoryDiv.className = '';
+        victoryDiv.innerHTML = '<div class="card">' + html + '</div>';
+      }
+    }, 1000);
+  } else {
+    // Modo normal
+    if (esCorrecta) currentTest.score++;
+    
+    var btns = document.querySelectorAll('.option');
+    for (var i = 0; i < btns.length; i++) {
+      var btn = btns[i];
+      btn.disabled = true;
+      if (btn.textContent[0] === correcta) {
+        btn.style.borderColor = '#16a34a';
+        btn.style.borderWidth = '3px';
+        btn.style.background = '#f0fdf4';
+      } else if (btn.textContent[0] === letra && !esCorrecta) {
+        btn.style.borderColor = '#ef4444';
+        btn.style.borderWidth = '3px';
+        btn.style.background = '#fef2f2';
+      } else {
+        btn.style.opacity = '0.5';
+      }
+    }
+    setTimeout(function() {
+      if (currentTest.index < currentTest.questions.length - 1) {
+        currentTest.index++;
+        showTest();
+      } else {
+        finishTest();
+      }
+    }, 2000);
+  }
+}
+
+function finishTest() {
+  clearInterval(timerInterval);
+  
+  // Guardar en Supabase con fecha actual
+  var elapsedSeconds = Math.max(0, (currentTest.duration || 0) - currentTest.time);
+  var tiempoUsado = elapsedSeconds + ' seconds'; // Formato válido para tipo interval de PostgreSQL
+  console.log('Guardando resultado:', {
+    tipo_test: currentTest.cat,
+    puntuacion: currentTest.score,
+    total_preguntas: currentTest.questions.length,
+    tiempo_usado: tiempoUsado
+  });
+  
+  client.from('resultados').insert(resultPayload({
+    tipo_test: currentTest.cat,
+    puntuacion: currentTest.score,
+    total_preguntas: currentTest.questions.length,
+    tiempo_usado: tiempoUsado,
+    fecha: new Date().toISOString(),
+    detalles: currentTest.answers // Guardar respuestas detalladas
+  })).then(function(res) {
+    console.log('Resultado guardado correctamente:', res);
+    // Verificar que se guardó
+    resultsQuery().limit(1).then(function(check) {
+      console.log('Último registro:', check.data);
+    });
+  }).catch(function(err) {
+    console.error('Error guardando:', err);
+    if (handleProfileColumnError(err)) {
+      alert('Falta añadir la columna perfil en Supabase. El test se ha completado, pero no se pudo guardar por perfil.');
+      return;
+    }
+    alert('Error al guardar el test: ' + err.message);
+  });
+  
+  hideAllScreens();
+  document.getElementById('results').className = '';
+  
+  var nota = ((currentTest.score / currentTest.questions.length) * 10).toFixed(2);
+  var aciertos = currentTest.score;
+  var errores = currentTest.questions.length - currentTest.score;
+  var tiempo = formatDuration(elapsedSeconds);
+  
+  document.getElementById('results-content').innerHTML = 
+    '<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin: 20px 0;">' +
+      '<div style="background: #f0fdf4; padding: 15px; border-radius: 8px; text-align: center;">' +
+        '<div style="font-size: 28px; font-weight: bold; color: #16a34a;">' + aciertos + '</div>' +
+        '<div style="font-size: 13px; color: #666;">Aciertos</div>' +
+      '</div>' +
+      '<div style="background: #fef2f2; padding: 15px; border-radius: 8px; text-align: center;">' +
+        '<div style="font-size: 28px; font-weight: bold; color: #ef4444;">' + errores + '</div>' +
+        '<div style="font-size: 13px; color: #666;">Errores</div>' +
+      '</div>' +
+      '<div style="background: #eff6ff; padding: 15px; border-radius: 8px; text-align: center;">' +
+        '<div style="font-size: 28px; font-weight: bold; color: #3b82f6;">' + nota + '</div>' +
+        '<div style="font-size: 13px; color: #666;">Nota (0-10)</div>' +
+      '</div>' +
+    '</div>' +
+    '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0; text-align: center;">' +
+      '<div style="font-size: 14px; color: #666;">Tiempo usado</div>' +
+      '<div style="font-size: 20px; font-weight: bold; color: #333; margin-top: 5px;">' + tiempo + '</div>' +
+    '</div>' +
+    '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0; text-align: center;">' +
+      '<div style="font-size: 14px; color: #666;">Total preguntas</div>' +
+      '<div style="font-size: 20px; font-weight: bold; color: #333; margin-top: 5px;">' + currentTest.questions.length + '</div>' +
+    '</div>' +
+    '<button class="secondary" onclick="showCurrentMistakes()" style="margin-top: 15px;">Ver fallos de este test</button>';
+}
+
+function buildQuestionsFromMistakes(results) {
+  var seen = {};
+  var questions = [];
+  results.forEach(function(r) {
+    var detalles = r.detalles || [];
+    detalles.forEach(function(d) {
+      if (d.es_correcta) return;
+      var key = d.pregunta_id || d.pregunta;
+      if (!key || seen[key] || !d.opciones || d.opciones.length < 4) return;
+      seen[key] = true;
+      questions.push({
+        id: d.pregunta_id,
+        enunciado: d.pregunta,
+        categoria: d.categoria || 'Repaso',
+        opcion_a: d.opciones[0],
+        opcion_b: d.opciones[1],
+        opcion_c: d.opciones[2],
+        opcion_d: d.opciones[3],
+        respuesta_correcta: d.respuesta_correcta,
+        explicacion: d.explicacion
+      });
+    });
+  });
+  return questions;
+}
+
+function startMistakeReview() {
+  setLoading('Buscando tus preguntas falladas...');
+  resultsQuery().limit(100).then(function(res) {
+    var questions = buildQuestionsFromMistakes(res.data || []);
+    if (questions.length === 0) {
+      hideAllScreens();
+      document.getElementById('app').className = '';
+      alert('Todavía no hay fallos guardados para repasar.');
+      return;
+    }
+    startLoadedTest('Repaso de fallos', questions.slice(0, 30), questions.length * 45);
+  }).catch(function(err) {
+    console.error('Error cargando fallos:', err);
+    if (handleProfileColumnError(err)) {
+      alert('Falta añadir la columna perfil en Supabase para separar los fallos por perfil.');
+      showAppForProfile();
+      return;
+    }
+    hideAllScreens();
+    document.getElementById('app').className = '';
+    alert('Error cargando el repaso de fallos');
+  });
+}
+
+function showCurrentMistakes() {
+  if (!currentTest || !currentTest.answers) return;
+  var detalles = currentTest.answers.filter(function(d) { return !d.es_correcta; });
+  hideAllScreens();
+  document.getElementById('test-details').className = '';
+  document.getElementById('details-title').textContent = 'Fallos de este test';
+  if (detalles.length === 0) {
+    document.getElementById('details-content').innerHTML = '<p style="color: #16a34a; text-align: center; padding: 30px;">No has fallado ninguna pregunta.</p>';
+    return;
+  }
+  document.getElementById('details-content').innerHTML = renderDetailsList(detalles);
+}
+
+function loadStats() {
+  console.log('Cargando estadísticas...');
+  resultsQuery().limit(50).then(function(res) {
+    console.log('Respuesta de resultados:', res);
+    if (res.data && res.data.length > 0) {
+      lastResults = res.data;
+      console.log('Número de tests encontrados:', res.data.length);
+      var html = renderCategoryStats(res.data);
+      html += '<h3 style="margin: 20px 0 15px 0; color: var(--text);">Historial de Tests</h3>';
+      html += '<div style="overflow-x: auto;"><table style="width: 100%; border-collapse: collapse; background: var(--surface); border-radius: 8px; overflow: hidden; border: 1px solid var(--border);">';
+      html += '<thead><tr style="background: #1e3a5f; color: white;">';
+      html += '<th style="padding: 12px; text-align: left; font-size: 13px;">Fecha</th>';
+      html += '<th style="padding: 12px; text-align: left; font-size: 13px;">Tipo</th>';
+      html += '<th style="padding: 12px; text-align: center; font-size: 13px;">Aciertos</th>';
+      html += '<th style="padding: 12px; text-align: center; font-size: 13px;">Total</th>';
+      html += '<th style="padding: 12px; text-align: center; font-size: 13px;">Nota</th>';
+      html += '<th style="padding: 12px; text-align: center; font-size: 13px;">Tiempo</th>';
+      html += '</tr></thead><tbody>';
+      
+      res.data.forEach(function(r, i) {
+        var nota = ((r.puntuacion / r.total_preguntas) * 10).toFixed(1);
+        var fecha = new Date(r.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        var bgColor = i % 2 === 0 ? 'var(--surface-soft)' : 'var(--surface)';
+        var notaColor = nota >= 5 ? '#16a34a' : '#ef4444';
+        
+        html += '<tr onclick="showTestDetails(' + r.id + ')" style="background: ' + bgColor + '; border-bottom: 1px solid var(--border); cursor: pointer;" onmouseover="this.style.background=\'rgba(37, 99, 235, 0.12)\'" onmouseout="this.style.background=\'' + bgColor + '\'">';
+        html += '<td style="padding: 12px; font-size: 13px; color: var(--muted);">' + fecha + '</td>';
+        html += '<td style="padding: 12px; font-size: 13px; font-weight: 500; color: var(--text);">' + (r.tipo_test || 'General') + '</td>';
+        html += '<td style="padding: 12px; text-align: center; font-size: 14px; font-weight: bold; color: #16a34a;">' + r.puntuacion + '</td>';
+        html += '<td style="padding: 12px; text-align: center; font-size: 14px; color: var(--text);">' + r.total_preguntas + '</td>';
+        html += '<td style="padding: 12px; text-align: center; font-size: 16px; font-weight: bold; color: ' + notaColor + ';">' + nota + '</td>';
+        html += '<td style="padding: 12px; text-align: center; font-size: 13px; color: var(--muted);">' + (r.tiempo_usado || '-') + '</td>';
+        html += '</tr>';
+      });
+      
+      html += '</tbody></table></div>';
+      html += '<p style="margin-top: 15px; font-size: 12px; color: var(--muted); text-align: center;">Total: ' + res.data.length + ' tests realizados</p>';
+      document.getElementById('stats').innerHTML = html;
+    } else {
+      lastResults = [];
+      document.getElementById('stats').innerHTML = '<div style="text-align: center; padding: 40px 20px; color: var(--muted);"><p style="font-size: 16px; margin-bottom: 10px;">📝</p><p>No hay tests realizados aún para ' + (currentProfile || 'este perfil') + '</p><p style="font-size: 13px; margin-top: 10px;">Completa tu primer test para ver el historial aquí</p></div>';
+    }
+  }).catch(function(err) {
+    console.error('Error cargando stats:', err);
+    if (handleProfileColumnError(err)) {
+      document.getElementById('stats').innerHTML = '<p style="color: var(--muted);">Para separar perfiles, ejecuta primero el SQL de perfiles en Supabase.</p>';
+      return;
+    }
+    document.getElementById('stats').innerHTML = '<p style="color: red;">Error cargando historial</p>';
+  });
+}
+
+function renderCategoryStats(results) {
+  var stats = {};
+  results.forEach(function(r) {
+    var name = r.tipo_test || 'General';
+    if (!stats[name]) stats[name] = { score: 0, total: 0, tests: 0 };
+    stats[name].score += Number(r.puntuacion || 0);
+    stats[name].total += Number(r.total_preguntas || 0);
+    stats[name].tests++;
+  });
+  var names = Object.keys(stats).sort(function(a, b) {
+    var pa = stats[a].total ? stats[a].score / stats[a].total : 0;
+    var pb = stats[b].total ? stats[b].score / stats[b].total : 0;
+    return pa - pb;
+  });
+  if (names.length === 0) return '';
+  var html = '<h3 style="margin: 20px 0 15px 0; color: var(--text);">Rendimiento por categoría</h3>';
+  html += '<div class="progress-list">';
+  names.forEach(function(name) {
+    var item = stats[name];
+    var percent = item.total ? Math.round((item.score / item.total) * 100) : 0;
+    var color = percent >= 70 ? '#16a34a' : (percent >= 50 ? '#f59e0b' : '#ef4444');
+    html += '<div>';
+    html += '<div class="progress-row"><strong>' + name + '</strong><span style="color: ' + color + '; font-weight: bold;">' + percent + '%</span></div>';
+    html += '<div class="progress-track"><div class="progress-bar" style="width: ' + percent + '%; background: ' + color + ';"></div></div>';
+    html += '<div class="muted">' + item.score + ' aciertos de ' + item.total + ' preguntas · ' + item.tests + ' tests</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  html += '<p class="muted">Arriba aparecen primero las áreas más flojas, para decidir qué repasar antes.</p>';
+  return html;
+}
+
+function renderDetailsList(detalles) {
+  var html = '<h3 style="margin: 20px 0 15px 0; color: #333; border-top: 1px solid #e5e7eb; padding-top: 20px;">Preguntas y Respuestas</h3>';
+  detalles.forEach(function(d, i) {
+    var bgColor = d.es_correcta ? '#f0fdf4' : '#fef2f2';
+    var borderColor = d.es_correcta ? '#16a34a' : '#ef4444';
+    var icon = d.es_correcta ? '✓' : '✗';
+
+    html += '<div style="background: ' + bgColor + '; border-left: 4px solid ' + borderColor + '; padding: 15px; margin: 10px 0; border-radius: 6px;">';
+    html += '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">';
+    html += '<span style="font-weight: bold; color: #333;">Pregunta ' + (i + 1) + '</span>';
+    html += '<span style="font-size: 18px; color: ' + borderColor + ';">' + icon + '</span>';
+    html += '</div>';
+    html += '<p style="margin: 10px 0; color: #333; line-height: 1.5;">' + (d.pregunta || 'Pregunta sin enunciado') + '</p>';
+
+    if (d.opciones && d.opciones.length > 0) {
+      html += '<div style="margin: 10px 0;">';
+      var letras = ['A', 'B', 'C', 'D'];
+      d.opciones.forEach(function(op, idx) {
+        var isUser = letras[idx] === d.respuesta_usuario;
+        var isCorrect = letras[idx] === d.respuesta_correcta;
+        var style = 'padding: 8px 12px; margin: 5px 0; border-radius: 4px; font-size: 14px; color: black;';
+        if (isCorrect) {
+          style += ' background: #d1fae5; border: 2px solid #16a34a;';
+        } else if (isUser && !isCorrect) {
+          style += ' background: #fee2e2; border: 2px solid #ef4444;';
+        } else {
+          style += ' background: #f9fafb; border: 1px solid #e5e7eb;';
+        }
+        html += '<div style="' + style + '"><strong>' + letras[idx] + ':</strong> ' + op;
+        if (isCorrect) html += ' ✓ Correcta';
+        if (isUser && !isCorrect) html += ' ← Tu respuesta';
+        html += '</div>';
+      });
+      html += '</div>';
+    }
+
+    if (d.explicacion) {
+      html += '<div style="background: white; padding: 10px; margin-top: 10px; border-radius: 4px; border: 1px solid #e5e7eb;">';
+      html += '<strong style="color: #3b82f6;">Explicación:</strong>';
+      html += '<p style="margin: 5px 0 0 0; color: #333; font-size: 14px;">' + d.explicacion + '</p>';
+      html += '</div>';
+    }
+    html += '</div>';
+  });
+  return html;
+}
+
+function backHome() {
+  if (timerInterval) clearInterval(timerInterval);
+  hideAllScreens();
+  document.getElementById('app').className = '';
+  loadStats();
+}
+
+function backToProfile() {
+  if (timerInterval) clearInterval(timerInterval);
+  hideAllScreens();
+  document.getElementById('app').className = '';
+  loadStats();
+}
+
+function showTestDetails(resultId) {
+  var query = client.from('resultados').select('*').eq('id', resultId);
+  if (currentProfile) query = query.eq('perfil', currentProfile);
+  query.single().then(function(res) {
+    if (res.data) {
+      var r = res.data;
+      var detalles = r.detalles || [];
+      var nota = ((r.puntuacion / r.total_preguntas) * 10).toFixed(1);
+      
+      hideAllScreens();
+      document.getElementById('test-details').className = '';
+      document.getElementById('details-title').textContent = 'Detalles del Test';
+      
+      var html = '<div style="margin-bottom: 20px;">';
+      html += '<p style="color: #666; font-size: 14px;">' + new Date(r.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + '</p>';
+      html += '<h3 style="margin: 10px 0; color: #333;">' + (r.tipo_test || 'General') + ' - Nota: ' + nota + '</h3>';
+      html += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0;">';
+      html += '<div style="background: #f0fdf4; padding: 10px; border-radius: 6px; text-align: center;"><div style="font-size: 20px; font-weight: bold; color: #16a34a;">' + r.puntuacion + '</div><div style="font-size: 12px; color: #666;">Aciertos</div></div>';
+      html += '<div style="background: #fef2f2; padding: 10px; border-radius: 6px; text-align: center;"><div style="font-size: 20px; font-weight: bold; color: #ef4444;">' + (r.total_preguntas - r.puntuacion) + '</div><div style="font-size: 12px; color: #666;">Errores</div></div>';
+      html += '</div></div>';
+      
+      if (detalles.length > 0) {
+        html += renderDetailsList(detalles);
+      } else {
+        html += '<p style="color: #999; text-align: center; padding: 30px;">No hay detalles disponibles para este test</p>';
+      }
+      
+      document.getElementById('details-content').innerHTML = html;
+    }
+  }).catch(function(err) {
+    console.error('Error cargando detalles:', err);
+    if (handleProfileColumnError(err)) {
+      alert('Falta añadir la columna perfil en Supabase para ver detalles separados por perfil.');
+      return;
+    }
+    alert('Error cargando los detalles del test');
+  });
+}
+
+function startSurvival() {
+  setLoading('Preparando modo supervivencia...');
+  
+  // Fetch questions from TEMARIO categories ONLY (exclude psychometric)
+  var categories = temarioCategories;
+  var allQuestions = [];
+  var completed = 0;
+  
+  categories.forEach(function(cat) {
+    client.from('preguntas').select('*').eq('categoria', getDbCategoryName(cat)).limit(20).then(function(res) {
+      if (res.data && res.data.length > 0) {
+        allQuestions = allQuestions.concat(res.data);
+      }
+      completed++;
+      if (completed === categories.length) {
+        if (allQuestions.length === 0) {
+          alert('No hay preguntas disponibles');
+          backHome();
+          return;
+        }
+        startLoadedTest('Supervivencia', allQuestions, 30, { survival: true });
+      }
+    }).catch(function(err) {
+      console.error('Error:', err);
+      completed++;
+      if (completed === categories.length && allQuestions.length > 0) {
+        startLoadedTest('Supervivencia', allQuestions, 30, { survival: true });
+      }
+    });
+  });
+}
+
+function startSurvivalTimer() {
+  if (timerInterval) clearInterval(timerInterval);
+  updateTimer();
+  timerInterval = setInterval(function() {
+    currentTest.time--;
+    updateTimer();
+    if (currentTest.time <= 0) {
+      clearInterval(timerInterval);
+      gameOver('⏱️ Tiempo agotado');
+    }
+  }, 1000);
+}
+
+function gameOver(reason) {
+  clearInterval(timerInterval);
+  hideAllScreens();
+  var elapsedSeconds = (currentTest.index * 30) + Math.max(0, 30 - currentTest.time);
+  
+  // Guardar resultado en Supabase
+  client.from('resultados').insert(resultPayload({
+    tipo_test: 'Supervivencia',
+    puntuacion: currentTest.score,
+    total_preguntas: currentTest.index + 1,
+    tiempo_usado: elapsedSeconds + ' seconds',
+    fecha: new Date().toISOString(),
+    detalles: currentTest.answers
+  })).then(function(res) {
+    console.log('Supervivencia guardada:', res);
+  }).catch(function(err) {
+    console.error('Error guardando supervivencia:', err);
+  });
+  
+  var html = '<div style="text-align: center; padding: 40px 20px;">';
+  html += '<div style="font-size: 80px; margin-bottom: 20px;">💀</div>';
+  html += '<h2 style="color: #ef4444; font-size: 32px; margin-bottom: 10px;">GAME OVER</h2>';
+  html += '<p style="font-size: 18px; color: #666; margin-bottom: 20px;">' + reason + '</p>';
+  html += '<div style="background: #fef2f2; padding: 20px; border-radius: 10px; margin: 20px 0;">';
+  html += '<div style="font-size: 48px; font-weight: bold; color: #ef4444;">' + currentTest.score + '</div>';
+  html += '<div style="font-size: 14px; color: #666;">Preguntas acertadas</div>';
+  html += '</div>';
+  html += '<button onclick="backHome()" style="background: #666; margin-top: 20px;">Volver al inicio</button>';
+  html += '</div>';
+  
+  var gameOverDiv = document.getElementById('game-over');
+  if (!gameOverDiv) {
+    gameOverDiv = document.createElement('div');
+    gameOverDiv.id = 'game-over';
+    document.body.appendChild(gameOverDiv);
+  }
+  gameOverDiv.className = '';
+  gameOverDiv.innerHTML = '<div class="card">' + html + '</div>';
+}
+
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
