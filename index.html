@@ -1,0 +1,1650 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>OpoRail</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f0f4f8;
+      --surface: rgba(255, 255, 255, 0.85);
+      --surface-opaque: #ffffff;
+      --surface-soft: #f8fafc;
+      --text: #0f172a;
+      --muted: #475569;
+      --border: #cbd5e1;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --secondary: #1e293b;
+      --secondary-hover: #0f172a;
+      --danger: #dc2626;
+      --success: #059669;
+      --glass-bg: rgba(255, 255, 255, 0.6);
+      --glass-border: rgba(255, 255, 255, 0.8);
+      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+    }
+    body.dark {
+      --bg: #0f172a;
+      --surface: rgba(30, 41, 59, 0.7);
+      --surface-opaque: #1e293b;
+      --surface-soft: rgba(15, 23, 42, 0.5);
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --border: rgba(51, 65, 85, 0.8);
+      --primary: #60a5fa;
+      --primary-hover: #3b82f6;
+      --secondary: #475569;
+      --secondary-hover: #64748b;
+      --danger: #f87171;
+      --success: #34d399;
+      --glass-bg: rgba(15, 23, 42, 0.4);
+      --glass-border: rgba(255, 255, 255, 0.1);
+      --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+    }
+    * { box-sizing: border-box; }
+    body { 
+      font-family: 'Inter', sans-serif; 
+      max-width: 920px; 
+      margin: 0 auto; 
+      padding: 24px; 
+      background: var(--bg); 
+      color: var(--text); 
+      transition: background 0.3s cubic-bezier(0.4, 0, 0.2, 1), color 0.3s;
+      background-image: radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.05) 0px, transparent 50%), 
+                        radial-gradient(at 100% 0%, rgba(16, 185, 129, 0.05) 0px, transparent 50%);
+      background-attachment: fixed;
+    }
+    .app-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin: 12px 0 32px; }
+    .brand-title { display: flex; align-items: center; gap: 16px; }
+    .brand-mark { 
+      display: grid; 
+      place-items: center; 
+      width: 52px; 
+      height: 52px; 
+      border-radius: 12px; 
+      background: linear-gradient(135deg, var(--primary), #10b981); 
+      color: white; 
+      font-weight: 800; 
+      font-size: 20px;
+      box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+    }
+    .brand-copy h1 { font-size: 32px; margin: 0; font-weight: 800; letter-spacing: -0.025em; }
+    .brand-copy p { color: var(--muted); margin: 4px 0 0; font-size: 15px; font-weight: 500; }
+    
+    .theme-toggle { 
+      width: auto; 
+      min-width: 130px; 
+      padding: 10px 18px; 
+      margin: 0; 
+      background: var(--surface); 
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      color: var(--text); 
+      border: 1px solid var(--border); 
+      box-shadow: var(--shadow);
+      font-weight: 600;
+      transition: all 0.2s ease;
+    }
+    .theme-toggle:hover { transform: translateY(-2px); background: var(--surface-opaque); box-shadow: var(--shadow-lg); }
+
+    .card { 
+      background: var(--surface); 
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      padding: 28px; 
+      margin: 24px 0; 
+      border-radius: 16px; 
+      border: 1px solid var(--glass-border); 
+      box-shadow: var(--shadow);
+      animation: fadeIn 0.4s ease-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    h2 { font-size: 22px; margin: 0 0 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    p { color: var(--text); line-height: 1.6; }
+    
+    button { 
+      background: var(--primary); 
+      color: white; 
+      border: none; 
+      padding: 14px 24px; 
+      margin: 8px 0; 
+      width: 100%; 
+      font-size: 16px; 
+      cursor: pointer; 
+      border-radius: 12px; 
+      font-weight: 700; 
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+    }
+    button:hover { 
+      background: var(--primary-hover); 
+      transform: translateY(-2px); 
+      box-shadow: 0 6px 20px rgba(59, 130, 246, 0.3); 
+    }
+    button:active { transform: translateY(0); }
+
+    .grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
+    @media (min-width: 600px) { .grid { grid-template-columns: 1fr 1fr; } }
+    
+    .category-button { 
+      display: flex; 
+      align-items: center; 
+      justify-content: space-between; 
+      gap: 12px; 
+      text-align: left; 
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .category-button:hover { background: var(--primary); color: white; }
+    .category-button:hover .category-count { background: rgba(255,255,255,0.2); color: white; }
+
+    .category-count { 
+      flex: none; 
+      padding: 4px 10px; 
+      border-radius: 999px; 
+      background: var(--surface-soft); 
+      color: var(--muted); 
+      font-size: 11px; 
+      font-weight: 800; 
+      white-space: nowrap; 
+      border: 1px solid var(--border);
+    }
+    
+    .category-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 24px; }
+    .summary-stat { background: var(--surface-soft); border: 1px solid var(--border); border-radius: 12px; padding: 16px; transition: transform 0.2s; }
+    .summary-stat:hover { transform: scale(1.02); }
+    .summary-stat strong { display: block; font-size: 24px; color: var(--primary); font-weight: 800; }
+    .summary-stat span { color: var(--muted); font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+    
+    .profile-bar { 
+      display: flex; 
+      align-items: center; 
+      justify-content: space-between; 
+      gap: 16px; 
+      background: var(--surface); 
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border); 
+      border-radius: 12px; 
+      padding: 14px 20px; 
+      margin-bottom: 24px; 
+      box-shadow: var(--shadow);
+    }
+    .profile-bar strong { color: var(--text); font-size: 18px; }
+    .profile-actions { display: flex; gap: 10px; }
+    .small-button { width: auto; margin: 0; padding: 10px 16px; font-size: 14px; }
+    
+    .profile-list { display: grid; gap: 12px; margin: 20px 0; }
+    .profile-choice { 
+      background: var(--surface-soft); 
+      color: var(--text); 
+      border: 1px solid var(--border); 
+      text-align: left; 
+      padding: 16px;
+      font-weight: 600;
+    }
+    .profile-choice:hover { border-color: var(--primary); background: var(--surface); }
+
+    .profile-form { display: flex; gap: 12px; margin-top: 20px; }
+    .profile-form input { 
+      flex: 1; 
+      min-width: 0; 
+      padding: 14px; 
+      border-radius: 12px; 
+      border: 1px solid var(--border); 
+      background: var(--surface-soft); 
+      color: var(--text); 
+      font-size: 16px; 
+      outline: none;
+      transition: all 0.2s;
+    }
+    .profile-form input:focus { border-color: var(--primary); background: var(--surface-opaque); ring: 2px var(--primary); }
+    .profile-form button { width: auto; margin: 0; }
+    
+    .hidden { display: none !important; }
+    
+    .timer { font-size: 36px; font-weight: 800; color: var(--primary); text-align: center; margin: 20px 0; font-variant-numeric: tabular-nums; }
+    .question { font-size: 18px; margin: 20px 0; font-weight: 600; line-height: 1.5; }
+    
+    .option { 
+      padding: 16px 20px; 
+      margin: 10px 0; 
+      background: var(--surface-soft); 
+      border: 2px solid var(--border); 
+      cursor: pointer; 
+      border-radius: 12px; 
+      text-align: left; 
+      font-size: 16px; 
+      color: var(--text); 
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .option:hover:not(:disabled) { background: var(--surface-opaque); border-color: var(--primary); transform: translateX(5px); }
+    
+    .muted { color: var(--muted); font-size: 14px; line-height: 1.5; }
+    .secondary { background: var(--secondary); box-shadow: 0 4px 12px rgba(51, 65, 85, 0.2); }
+    .secondary:hover { background: var(--secondary-hover); }
+    
+    .progress-track { height: 10px; background: var(--border); border-radius: 999px; overflow: hidden; margin: 8px 0; }
+    .progress-bar { height: 100%; background: var(--primary); border-radius: 999px; transition: width 0.5s ease-out; }
+    
+    .mode-card { border: 2px solid rgba(239, 68, 68, 0.2); background: linear-gradient(to bottom right, var(--surface), rgba(239, 68, 68, 0.05)); }
+    .game-card { border: 2px solid rgba(16, 185, 129, 0.2); background: linear-gradient(to bottom right, var(--surface), rgba(16, 185, 129, 0.05)); }
+    
+    .danger-button { background: var(--danger); box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2); }
+    .danger-button:hover { background: #dc2626; box-shadow: 0 6px 20px rgba(239, 68, 68, 0.3); }
+    
+    .success-button { background: var(--success); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2); }
+    .success-button:hover { background: #059669; box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3); }
+
+    /* Word Game Styles */
+    .word-display { 
+      display: flex; 
+      flex-wrap: wrap; 
+      justify-content: center; 
+      gap: 8px; 
+      margin: 30px 0; 
+    }
+    .letter-box { 
+      width: 45px; 
+      height: 55px; 
+      border: 2px solid var(--border); 
+      border-radius: 8px; 
+      display: grid; 
+      place-items: center; 
+      font-size: 28px; 
+      font-weight: 800; 
+      text-transform: uppercase; 
+      background: var(--surface-opaque);
+      color: var(--text);
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .letter-box.filled { border-color: var(--primary); background: var(--surface-opaque); transform: scale(1.05); }
+    .letter-box.correct { border-color: var(--success); background: rgba(16, 185, 129, 0.1); color: var(--success); }
+    .letter-box.error { border-color: var(--danger); background: rgba(239, 68, 68, 0.1); animation: shake 0.4s; }
+    
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+
+    .keyboard { 
+      display: flex; 
+      flex-wrap: wrap; 
+      justify-content: center; 
+      gap: 6px; 
+      margin-top: 30px; 
+    }
+    .key { 
+      padding: 10px 12px; 
+      min-width: 38px; 
+      height: 48px; 
+      border-radius: 8px; 
+      background: var(--surface-opaque); 
+      border: 1px solid var(--border); 
+      color: var(--text);
+      font-weight: 700; 
+      cursor: pointer; 
+      transition: all 0.1s;
+      user-select: none;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .key:hover { transform: translateY(-2px); border-color: var(--primary); }
+    .key:active { transform: translateY(0); }
+    .key.used { opacity: 0.4; pointer-events: none; }
+
+    @media (max-width: 600px) {
+      body { padding: 16px; }
+      .app-header { align-items: stretch; flex-direction: column; text-align: center; }
+      .brand-title { flex-direction: column; }
+      .brand-mark { width: 64px; height: 64px; margin: 0 auto; }
+      .theme-toggle { width: 100%; margin-top: 10px; }
+      .category-summary { grid-template-columns: 1fr; }
+      .profile-bar, .profile-form { align-items: stretch; flex-direction: column; }
+      .profile-actions { display: grid; grid-template-columns: 1fr 1fr; }
+      .profile-form button { width: 100%; }
+      .letter-box { width: 35px; height: 45px; font-size: 20px; }
+    }
+  </style>
+
+</head>
+<body>
+
+<div id="profile-screen" class="hidden">
+  <div class="app-header">
+    <div class="brand-title">
+      <div class="brand-mark">OR</div>
+      <div class="brand-copy">
+        <h1>OpoRail</h1>
+        <p>Elige quién va a entrenar para separar resultados y fallos.</p>
+      </div>
+    </div>
+    <button id="theme-toggle-profile" class="theme-toggle" onclick="toggleTheme()">Modo oscuro</button>
+  </div>
+  
+  <div class="card" style="border: 1px solid var(--primary); background: linear-gradient(135deg, var(--surface), rgba(59, 130, 246, 0.05));">
+    <h2>☁️ Sincronización en la Nube</h2>
+    <p class="muted">Introduce el mismo código en todos tus dispositivos para ver tus perfiles y resultados en cualquier lugar.</p>
+    <div class="profile-form">
+      <input id="sync-id-input" type="text" placeholder="Tu código secreto (ej: mi-oposicion-7)" maxlength="50">
+      <button class="small-button" onclick="setSyncId()">Vincular</button>
+    </div>
+    <div id="sync-status" style="margin-top: 10px; font-size: 13px; font-weight: 600; color: var(--primary);"></div>
+  </div>
+
+  <div class="card">
+    <h2>Perfiles</h2>
+    <p class="muted">Cada perfil guarda su historial, estadísticas y repaso de fallos por separado.</p>
+    <div id="profile-list" class="profile-list"></div>
+    <div class="profile-form">
+      <input id="new-profile-name" type="text" placeholder="Nombre del perfil" maxlength="30">
+      <button onclick="createProfile()">Crear perfil</button>
+    </div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="app-header">
+    <div class="brand-title">
+      <div class="brand-mark">OR</div>
+      <div class="brand-copy">
+        <h1>OpoRail</h1>
+        <p>Entrena, mide tu progreso y repasa tus fallos.</p>
+      </div>
+    </div>
+    <button id="theme-toggle" class="theme-toggle" onclick="toggleTheme()">Modo oscuro</button>
+  </div>
+  <div class="profile-bar">
+    <div>
+      <span class="muted">Perfil activo</span><br>
+      <strong id="current-profile-label">Sin perfil</strong>
+    </div>
+    <div class="profile-actions">
+      <button class="small-button secondary" onclick="showProfileScreen()">Cambiar</button>
+      <button class="small-button" onclick="renameCurrentProfile()">Renombrar</button>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Entrenamiento</h2>
+    <div class="grid">
+      <button class="category-button" onclick="startTest('Actividad Comercial', 20, 15)"><span>Actividad Comercial</span><span class="category-count" data-category-count="Actividad Comercial">...</span></button>
+      <button class="category-button" onclick="startTest('Conocimientos Ferroviarios', 20, 15)"><span>Conocimientos Ferroviarios</span><span class="category-count" data-category-count="Conocimientos Ferroviarios">...</span></button>
+      <button class="category-button" onclick="startTest('Cultura de la Seguridad', 20, 15)"><span>Cultura de la Seguridad</span><span class="category-count" data-category-count="Cultura de la Seguridad">...</span></button>
+      <button class="category-button" onclick="startTest('Experiencia de Cliente', 20, 15)"><span>Experiencia de Cliente</span><span class="category-count" data-category-count="Experiencia de Cliente">...</span></button>
+      <button class="category-button" onclick="startTest('II Plan de Igualdad', 20, 15)"><span>II Plan de Igualdad</span><span class="category-count" data-category-count="II Plan de Igualdad">...</span></button>
+      <button class="category-button" onclick="startTest('Numérico', 20, 15)"><span>Numérico</span><span class="category-count" data-category-count="Numérico">...</span></button>
+      <button class="category-button" onclick="startTest('Verbal', 20, 15)"><span>Verbal</span><span class="category-count" data-category-count="Verbal">...</span></button>
+      <button class="category-button" onclick="startTest('Series de Figuras', 20, 15)"><span>Series de Figuras</span><span class="category-count" data-category-count="Series de Figuras">...</span></button>
+      <button class="category-button" onclick="startTest('Atención', 20, 15)"><span>Atención</span><span class="category-count" data-category-count="Atención">...</span></button>
+    </div>
+    <div class="category-summary">
+      <div class="summary-stat"><strong id="total-question-count">...</strong><span>preguntas disponibles</span></div>
+      <div class="summary-stat"><strong id="largest-category-count">...</strong><span>categoría con más preguntas</span></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Simulacro de Examen</h2>
+    <p>60 preguntas en 30 minutos</p>
+    <button onclick="startSimulacro()">Iniciar Simulacro</button>
+  </div>
+  <div class="card">
+    <h2>Repaso Inteligente</h2>
+    <p class="muted">Vuelve a practicar solo las preguntas que has fallado en tests anteriores.</p>
+    <button class="secondary" onclick="startMistakeReview()">Repasar mis fallos</button>
+  </div>
+  <div class="card mode-card">
+    <h2 style="color: var(--danger);">🔥 Modo Supervivencia</h2>
+    <p>30 segundos por pregunta. ¡Un error y GAME OVER!</p>
+    <button class="danger-button" onclick="startSurvival()">Iniciar Supervivencia</button>
+  </div>
+  <div class="card game-card">
+    <h2 style="color: var(--success);">🧩 El Tren de las Palabras</h2>
+    <p>Adivina el término técnico a partir de su definición oficial.</p>
+    <button class="success-button" onclick="startWordGame()">Jugar ahora</button>
+  </div>
+  <div class="card">
+    <h2>Mi Perfil</h2>
+    <div id="stats"></div>
+  </div>
+</div>
+
+<div id="word-game" class="hidden">
+  <div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <h2 style="color: var(--success);">El Tren de las Palabras</h2>
+      <div style="text-align: right;">
+        <div style="font-weight: 800; color: var(--primary);">Puntos: <span id="game-points">0</span></div>
+        <div id="game-lives" style="font-weight: 800; color: var(--danger); font-size: 14px;">Vidas: ❤️❤️❤️</div>
+      </div>
+    </div>
+    <div id="game-definition" class="question" style="text-align: center; font-style: italic;">
+      Cargando definición...
+    </div>
+    <div id="word-container" class="word-display">
+      <!-- Letras aquí -->
+    </div>
+    <div id="game-keyboard" class="keyboard">
+      <!-- Teclado aquí -->
+    </div>
+    <div style="margin-top: 30px; display: flex; gap: 10px;">
+      <button class="secondary small-button" onclick="backHome()">Rendirse</button>
+      <button id="skip-word" class="small-button" onclick="nextWord()" style="background: var(--muted); display: none;">Siguiente</button>
+    </div>
+  </div>
+</div>
+
+<div id="loading" class="hidden">
+  <div class="card loading" id="loading-text">Cargando...</div>
+</div>
+
+<div id="test" class="hidden">
+  <div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <h2 id="test-title"></h2>
+      <div id="timer" class="timer">00:00</div>
+    </div>
+    <div id="counter" style="color: #666; margin: 10px 0;"></div>
+    <div id="question" class="question"></div>
+    <div id="options"></div>
+    <button onclick="backHome()" style="margin-top: 20px; background: #666;">Volver</button>
+  </div>
+</div>
+
+<div id="results" class="hidden">
+  <div class="card">
+    <h2>Resultados</h2>
+    <div id="results-content"></div>
+    <button onclick="backHome()" style="margin-top: 20px;">Volver</button>
+  </div>
+</div>
+
+<div id="test-details" class="hidden">
+  <div class="card">
+    <h2 id="details-title">Detalles del Test</h2>
+    <div id="details-content"></div>
+    <button onclick="backToProfile()" style="margin-top: 20px; background: #666;">Volver al Perfil</button>
+  </div>
+</div>
+
+<script>
+var supabaseUrl = 'https://kxhtiqaupfodbxskcjox.supabase.co';
+var supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt4aHRpcWF1cGZvZGJ4c2tjam94Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5NjYwMzUsImV4cCI6MjA5MzU0MjAzNX0.Frwfdt6weBnyltD9G3y6wID5c9n6r1t6gTALsGTdbUA';
+
+var client = null;
+var currentTest = null;
+var timerInterval = null;
+var lastResults = [];
+var currentProfile = null;
+var profileColumnAvailable = true;
+var temarioCategories = ['Actividad Comercial', 'Conocimientos Ferroviarios', 'Cultura de la Seguridad', 'Experiencia de Cliente', 'II Plan de Igualdad'];
+var allCategories = ['Actividad Comercial', 'Conocimientos Ferroviarios', 'Cultura de la Seguridad', 'Experiencia de Cliente', 'II Plan de Igualdad', 'Numérico', 'Verbal', 'Series de Figuras', 'Atención'];
+var categoryDbNames = {
+  'Cultura de la Seguridad': 'Cultura de Seguridad'
+};
+
+function getDbCategoryName(cat) {
+  return categoryDbNames[cat] || cat;
+}
+
+// Banco de definiciones para el juego
+var wordGameDefinitions = [
+  { word: "DESVÍO", hint: "Aparato de vía que permite el paso de los trenes de una vía a otra." },
+  { word: "BALASTO", hint: "Capa de piedra partida que se extiende sobre la plataforma de la vía." },
+  { word: "PANTÓGRAFO", hint: "Dispositivo situado en el techo del tren para captar energía de la catenaria." },
+  { word: "SURCO", hint: "Capacidad de infraestructura asignada a un tren para un trayecto y tiempo determinados." },
+  { word: "CATENARIA", hint: "Línea aérea de contacto que suministra energía eléctrica a los trenes." },
+  { word: "BOGIE", hint: "Conjunto de dos o tres ejes que se articula bajo el bastidor de un vehículo ferroviario." },
+  { word: "ENCLAVAMIENTO", hint: "Sistema que controla de forma segura el movimiento de trenes en estaciones." },
+  { word: "TRACCIÓN", hint: "Fuerza que permite el movimiento del tren mediante motores eléctricos o diésel." },
+  { word: "GÁLIBO", hint: "Dimensiones máximas que puede tener un vehículo ferroviario para circular por una vía." },
+  { word: "BALIZA", hint: "Dispositivo de vía que transmite información al sistema de frenado automático del tren." },
+  { word: "CANTÓN", hint: "Tramo de vía en el que no puede haber simultáneamente más de un tren." },
+  { word: "ASFA", hint: "Sistema de Anuncio de Señales y Frenado Automático." },
+  { word: "CONSIGNACIÓN", hint: "Documento oficial que contiene normas de seguridad para un tramo o trabajo." },
+  { word: "ESTACIÓN", hint: "Instalación ferroviaria apta para realizar la salida, llegada o paso de trenes." }
+];
+
+var wordGameState = {
+  currentWord: "",
+  currentHint: "",
+  guessedLetters: [], // Guardaremos letras normalizadas (sin tildes)
+  points: 0,
+  mistakes: 0,
+  index: 0
+};
+
+var syncId = localStorage.getItem('oporail-sync-id') || 'publico';
+
+function normalizeStr(str) {
+  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+}
+
+function hideAllScreens() {
+  document.getElementById('profile-screen').className = 'hidden';
+  document.getElementById('app').className = 'hidden';
+  document.getElementById('test').className = 'hidden';
+  document.getElementById('results').className = 'hidden';
+  document.getElementById('test-details').className = 'hidden';
+  document.getElementById('loading').className = 'hidden';
+  document.getElementById('word-game').className = 'hidden';
+  var gameOverDiv = document.getElementById('game-over');
+  if (gameOverDiv) gameOverDiv.className = 'hidden';
+  var victoryDiv = document.getElementById('victory');
+  if (victoryDiv) victoryDiv.className = 'hidden';
+}
+
+function setLoading(message) {
+  if (timerInterval) clearInterval(timerInterval);
+  hideAllScreens();
+  document.getElementById('loading-text').textContent = message || 'Cargando...';
+  document.getElementById('loading').className = '';
+}
+
+function shuffle(items) {
+  var i, j, temp;
+  for (i = items.length - 1; i > 0; i--) {
+    j = Math.floor(Math.random() * (i + 1));
+    temp = items[i];
+    items[i] = items[j];
+    items[j] = temp;
+  }
+  return items;
+}
+
+function getQuestionText(q) {
+  return q.enunciado || q.pregunta || 'Pregunta sin enunciado';
+}
+
+function formatDuration(seconds) {
+  seconds = Math.max(0, Math.floor(seconds || 0));
+  var m = Math.floor(seconds / 60);
+  var s = seconds % 60;
+  if (m <= 0) return s + ' s';
+  if (s === 0) return m + ' min';
+  return m + ' min ' + s + ' s';
+}
+
+function startLoadedTest(cat, questions, seconds, options) {
+  currentTest = {
+    questions: shuffle(questions).slice(0, questions.length),
+    index: 0,
+    score: 0,
+    cat: cat,
+    time: seconds,
+    duration: seconds,
+    survival: options && options.survival,
+    answers: []
+  };
+  showTest();
+  if (currentTest.survival) startSurvivalTimer();
+  else startTimer();
+}
+
+function applyTheme(theme) {
+  var isDark = theme === 'dark';
+  document.body.className = isDark ? 'dark' : '';
+  var toggle = document.getElementById('theme-toggle');
+  if (toggle) toggle.textContent = isDark ? 'Modo claro' : 'Modo oscuro';
+  var profileToggle = document.getElementById('theme-toggle-profile');
+  if (profileToggle) profileToggle.textContent = isDark ? 'Modo claro' : 'Modo oscuro';
+}
+
+function toggleTheme() {
+  var nextTheme = document.body.className === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('oporail-theme', nextTheme);
+  applyTheme(nextTheme);
+}
+
+function init() {
+  client = supabase.createClient(supabaseUrl, supabaseKey);
+  applyTheme(localStorage.getItem('oporail-theme') || 'light');
+  currentProfile = localStorage.getItem('oporail-current-profile');
+  loadQuestionCounts();
+  if (currentProfile) showAppForProfile();
+  else showProfileScreen();
+}
+
+function getProfiles() {
+  try {
+    return JSON.parse(localStorage.getItem('oporail-profiles') || '[]');
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveProfiles(profiles) {
+  localStorage.setItem('oporail-profiles', JSON.stringify(profiles));
+}
+
+function showProfileScreen() {
+  if (timerInterval) clearInterval(timerInterval);
+  hideAllScreens();
+  document.getElementById('sync-id-input').value = syncId === 'publico' ? '' : syncId;
+  updateSyncStatus();
+  renderProfileList();
+  document.getElementById('profile-screen').className = '';
+}
+
+function updateSyncStatus() {
+  var status = document.getElementById('sync-status');
+  if (syncId === 'publico') {
+    status.innerHTML = '⚠️ Modo local (no se sincroniza)';
+    status.style.color = 'var(--muted)';
+  } else {
+    status.innerHTML = '✅ Sincronizado con el código: <strong>' + syncId + '</strong>';
+    status.style.color = 'var(--success)';
+  }
+}
+
+function setSyncId() {
+  var val = (document.getElementById('sync-id-input').value || '').trim();
+  if (!val) {
+    if (!confirm('¿Quieres desactivar la sincronización y volver al modo local?')) return;
+    syncId = 'publico';
+  } else {
+    syncId = val;
+  }
+  localStorage.setItem('oporail-sync-id', syncId);
+  updateSyncStatus();
+  renderProfileList(); // Recargar perfiles desde la nube
+}
+
+async function renderProfileList() {
+  var list = document.getElementById('profile-list');
+  list.innerHTML = '<p class="muted">Cargando perfiles...</p>';
+  
+  var profiles = [];
+  
+  if (syncId === 'publico') {
+    // Local
+    profiles = JSON.parse(localStorage.getItem('oporail-profiles') || '[]');
+  } else {
+    // Cloud
+    try {
+      const { data, error } = await client.from('perfiles_cloud').select('nombre').eq('sync_id', syncId);
+      if (error) throw error;
+      profiles = data.map(function(p) { return p.nombre; });
+    } catch (e) {
+      console.error('Error cargando perfiles nube:', e);
+      list.innerHTML = '<p class="muted" style="color: var(--danger);">Error al conectar con la nube. Verifica tu conexión.</p>';
+      return;
+    }
+  }
+
+  if (profiles.length === 0) {
+    list.innerHTML = '<p class="muted">Todavía no hay perfiles. Crea uno para empezar.</p>';
+    return;
+  }
+  
+  profiles.sort();
+  var html = '';
+  profiles.forEach(function(profile) {
+    html += '<button class="profile-choice" onclick="selectProfile(&quot;' + encodeURIComponent(profile) + '&quot;)">' + profile + '</button>';
+  });
+  list.innerHTML = html;
+}
+
+async function createProfile() {
+  var input = document.getElementById('new-profile-name');
+  var name = (input.value || '').trim();
+  if (!name) {
+    alert('Escribe un nombre para el perfil.');
+    return;
+  }
+  
+  if (syncId === 'publico') {
+    var profiles = JSON.parse(localStorage.getItem('oporail-profiles') || '[]');
+    if (profiles.indexOf(name) === -1) {
+      profiles.push(name);
+      localStorage.setItem('oporail-profiles', JSON.stringify(profiles));
+    }
+  } else {
+    try {
+      setLoading('Creando perfil en la nube...');
+      const { error } = await client.from('perfiles_cloud').insert({ nombre: name, sync_id: syncId });
+      if (error && error.code !== '23505') throw error; // Ignorar si ya existe (unique constraint)
+    } catch (e) {
+      alert('Error al crear perfil en la nube: ' + e.message);
+      backHome();
+      return;
+    }
+  }
+  
+  input.value = '';
+  selectProfile(encodeURIComponent(name));
+}
+
+function selectProfile(encodedName) {
+  currentProfile = decodeURIComponent(encodedName);
+  localStorage.setItem('oporail-current-profile', currentProfile);
+  showAppForProfile();
+}
+
+function showAppForProfile() {
+  hideAllScreens();
+  document.getElementById('current-profile-label').textContent = currentProfile || 'Sin perfil';
+  document.getElementById('app').className = '';
+  loadStats();
+}
+
+function renameCurrentProfile() {
+  if (!currentProfile) return;
+  var nextName = prompt('Nuevo nombre para el perfil:', currentProfile);
+  if (!nextName) return;
+  nextName = nextName.trim();
+  if (!nextName) return;
+  var profiles = getProfiles();
+  var index = profiles.indexOf(currentProfile);
+  if (index !== -1) profiles[index] = nextName;
+  if (profiles.indexOf(nextName) === -1) profiles.push(nextName);
+  profiles = profiles.filter(function(profile, i) { return profiles.indexOf(profile) === i; }).sort();
+  saveProfiles(profiles);
+  currentProfile = nextName;
+  localStorage.setItem('oporail-current-profile', currentProfile);
+  showAppForProfile();
+}
+
+function resultsQuery() {
+  var query = client.from('resultados').select('*').order('fecha', { ascending: false });
+  if (syncId !== 'publico') query = query.eq('sync_id', syncId);
+  else query = query.filter('sync_id', 'is', null); // O sin sync_id para local
+  
+  if (currentProfile && profileColumnAvailable) query = query.eq('perfil', currentProfile);
+  return query;
+}
+
+function resultPayload(base) {
+  if (profileColumnAvailable) base.perfil = currentProfile || 'Sin perfil';
+  if (syncId !== 'publico') base.sync_id = syncId;
+  return base;
+}
+
+function handleProfileColumnError(err) {
+  if (err && err.message && err.message.indexOf('perfil') !== -1) {
+    profileColumnAvailable = false;
+    return true;
+  }
+  return false;
+}
+
+function loadQuestionCounts() {
+  var counts = {};
+  var completed = 0;
+  allCategories.forEach(function(cat) {
+    client.from('preguntas').select('id', { count: 'exact', head: true }).eq('categoria', getDbCategoryName(cat)).then(function(res) {
+      counts[cat] = res.count || 0;
+      completed++;
+      if (completed === allCategories.length) renderQuestionCounts(counts);
+    }).catch(function(err) {
+      console.error('Error contando preguntas:', err);
+      counts[cat] = null;
+      completed++;
+      if (completed === allCategories.length) renderQuestionCounts(counts);
+    });
+  });
+}
+
+function renderQuestionCounts(counts) {
+  var total = 0;
+  var largestName = '';
+  var largestCount = 0;
+  allCategories.forEach(function(cat) {
+    var count = counts[cat];
+    var badge = document.querySelector('[data-category-count="' + cat + '"]');
+    if (badge) badge.textContent = count === null ? 'Sin datos' : count + ' preg.';
+    if (typeof count === 'number') {
+      total += count;
+      if (count > largestCount) {
+        largestCount = count;
+        largestName = cat;
+      }
+    }
+  });
+  document.getElementById('total-question-count').textContent = total || 'Sin datos';
+  document.getElementById('largest-category-count').textContent = largestName ? largestName + ' · ' + largestCount : 'Sin datos';
+}
+
+async function startTest(cat, num, mins) {
+  setLoading('Cargando preguntas de ' + cat + '...');
+  
+  try {
+    // 1. Obtener IDs de preguntas ya acertadas para este perfil
+    let correctIds = [];
+    const resStats = await resultsQuery().limit(1000);
+    if (resStats.data) {
+      resStats.data.forEach(r => {
+        if (r.detalles) {
+          r.detalles.forEach(d => {
+            if (d.es_correcta && d.pregunta_id) {
+              correctIds.push(d.pregunta_id);
+            }
+          });
+        }
+      });
+    }
+    
+    // 2. Cargar preguntas de la categoría
+    const resPreguntas = await client.from('preguntas').select('*').eq('categoria', getDbCategoryName(cat));
+    
+    if (resPreguntas.error || !resPreguntas.data || resPreguntas.data.length === 0) {
+      backHome();
+      alert('No hay preguntas para: ' + cat);
+      return;
+    }
+    
+    // 3. Filtrar las ya acertadas (a menos que no queden más opciones)
+    let filtered = resPreguntas.data.filter(q => correctIds.indexOf(q.id) === -1);
+    
+    // Si el filtro deja pocas preguntas, usamos las originales (para no dejar el test vacío)
+    if (filtered.length < num) {
+      filtered = resPreguntas.data;
+    }
+    
+    startLoadedTest(cat, filtered.slice(0, num), mins * 60);
+    
+  } catch (err) {
+    console.error('Error:', err);
+    backHome();
+    alert('Error cargando preguntas');
+  }
+}
+
+function startSimulacro() {
+  setLoading('Preparando simulacro...');
+  // Fetch questions from TEMARIO categories ONLY (exclude psychometric)
+  var categories = temarioCategories;
+  var allQuestions = [];
+  var completed = 0;
+  
+  // Fetch from each category
+  for (var c = 0; c < categories.length; c++) {
+    (function(cat) {
+      client.from('preguntas').select('*').eq('categoria', getDbCategoryName(cat)).limit(15).then(function(res) {
+        if (res.data && res.data.length > 0) {
+          allQuestions = allQuestions.concat(res.data);
+        }
+        completed++;
+        if (completed === categories.length) {
+          // All fetched
+          if (allQuestions.length === 0) {
+            hideAllScreens();
+            document.getElementById('app').className = '';
+            alert('No hay preguntas para el simulacro');
+            return;
+          }
+          startLoadedTest('Simulacro', allQuestions.slice(0, 60), 30 * 60);
+        }
+      }).catch(function(err) {
+        console.error('Error:', err);
+        completed++;
+        if (completed === categories.length) {
+          if (allQuestions.length > 0) {
+            startLoadedTest('Simulacro', allQuestions.slice(0, 60), 30 * 60);
+          } else {
+            hideAllScreens();
+            document.getElementById('app').className = '';
+            alert('Error cargando preguntas');
+          }
+        }
+      });
+    })(categories[c]);
+  }
+}
+
+function showTest() {
+  hideAllScreens();
+  document.getElementById('test').className = '';
+  var q = currentTest.questions[currentTest.index];
+  document.getElementById('test-title').textContent = currentTest.cat;
+  document.getElementById('counter').textContent = 'Pregunta ' + (currentTest.index + 1) + ' de ' + currentTest.questions.length;
+  document.getElementById('question').textContent = getQuestionText(q);
+  var container = document.getElementById('options');
+  container.innerHTML = '';
+  var letras = ['A', 'B', 'C', 'D'];
+  for (var i = 0; i < letras.length; i++) {
+    var letra = letras[i];
+    var btn = document.createElement('button');
+    btn.className = 'option';
+    btn.textContent = letra + ') ' + q['opcion_' + letra.toLowerCase()];
+    btn.onclick = (function(ltr) {
+      return function() { answer(ltr); }
+    })(letra);
+    container.appendChild(btn);
+  }
+  updateTimer();
+}
+
+function updateTimer() {
+  var m = Math.floor(currentTest.time / 60);
+  var s = currentTest.time % 60;
+  var sStr = s < 10 ? '0' + s : '' + s;
+  document.getElementById('timer').textContent = m + ':' + sStr;
+}
+
+function startTimer() {
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(function() {
+    currentTest.time--;
+    updateTimer();
+    if (currentTest.time <= 0) {
+      clearInterval(timerInterval);
+      finishTest();
+    }
+  }, 1000);
+}
+
+function answer(letra) {
+  var q = currentTest.questions[currentTest.index];
+  var correcta = q.respuesta_correcta;
+  var esCorrecta = letra === correcta;
+  
+  // Guardar respuesta
+  currentTest.answers.push({
+    pregunta_id: q.id,
+    respuesta_usuario: letra,
+    respuesta_correcta: correcta,
+    es_correcta: esCorrecta,
+    pregunta: getQuestionText(q),
+    categoria: q.categoria || currentTest.cat,
+    explicacion: q.explicacion,
+    opciones: [q.opcion_a, q.opcion_b, q.opcion_c, q.opcion_d]
+  });
+  
+  if (currentTest.survival) {
+    // Modo Supervivencia
+    if (!esCorrecta) {
+      gameOver('❌ Respuesta incorrecta');
+      return;
+    }
+    
+    currentTest.score++;
+    var btns = document.querySelectorAll('.option');
+    for (var i = 0; i < btns.length; i++) {
+      btns[i].disabled = true;
+      if (btns[i].textContent[0] === correcta) {
+        btns[i].style.borderColor = '#16a34a';
+        btns[i].style.borderWidth = '3px';
+        btns[i].style.background = '#f0fdf4';
+      }
+    }
+    
+    setTimeout(function() {
+      if (currentTest.index < currentTest.questions.length - 1) {
+        currentTest.index++;
+        currentTest.time = 30;
+        showTest();
+        startSurvivalTimer();
+      } else {
+        // ¡Victoria!
+        clearInterval(timerInterval);
+        document.getElementById('test').className = 'hidden';
+        
+        // Guardar resultado en Supabase
+        client.from('resultados').insert(resultPayload({
+          tipo_test: 'Supervivencia',
+          puntuacion: currentTest.score,
+          total_preguntas: currentTest.questions.length,
+          tiempo_usado: (currentTest.questions.length * 30) + ' seconds',
+          fecha: new Date().toISOString(),
+          detalles: currentTest.answers
+        })).then(function(res) {
+          console.log('Victoria guardada:', res);
+        }).catch(function(err) {
+          console.error('Error guardando victoria:', err);
+        });
+        
+        var html = '<div style="text-align: center; padding: 40px 20px;">';
+        html += '<div style="font-size: 80px; margin-bottom: 20px;">🏆</div>';
+        html += '<h2 style="color: #16a34a; font-size: 32px; margin-bottom: 10px;">¡VICTORIA!</h2>';
+        html += '<p style="font-size: 18px; color: #666; margin-bottom: 20px;">Has superado todas las preguntas</p>';
+        html += '<div style="background: #f0fdf4; padding: 20px; border-radius: 10px; margin: 20px 0;">';
+        html += '<div style="font-size: 48px; font-weight: bold; color: #16a34a;">' + currentTest.score + '</div>';
+        html += '<div style="font-size: 14px; color: #666;">Preguntas acertadas</div>';
+        html += '</div>';
+        html += '<button onclick="backHome()" style="background: #666; margin-top: 20px;">Volver al inicio</button>';
+        html += '</div>';
+        
+        var victoryDiv = document.getElementById('victory');
+        if (!victoryDiv) {
+          victoryDiv = document.createElement('div');
+          victoryDiv.id = 'victory';
+          document.body.appendChild(victoryDiv);
+        }
+        victoryDiv.className = '';
+        victoryDiv.innerHTML = '<div class="card">' + html + '</div>';
+      }
+    }, 1000);
+  } else {
+    // Modo normal
+    if (esCorrecta) currentTest.score++;
+    
+    var btns = document.querySelectorAll('.option');
+    for (var i = 0; i < btns.length; i++) {
+      var btn = btns[i];
+      btn.disabled = true;
+      if (btn.textContent[0] === correcta) {
+        btn.style.borderColor = '#16a34a';
+        btn.style.borderWidth = '3px';
+        btn.style.background = '#f0fdf4';
+      } else if (btn.textContent[0] === letra && !esCorrecta) {
+        btn.style.borderColor = '#ef4444';
+        btn.style.borderWidth = '3px';
+        btn.style.background = '#fef2f2';
+      } else {
+        btn.style.opacity = '0.5';
+      }
+    }
+    setTimeout(function() {
+      if (currentTest.index < currentTest.questions.length - 1) {
+        currentTest.index++;
+        showTest();
+      } else {
+        finishTest();
+      }
+    }, 2000);
+  }
+}
+
+function finishTest() {
+  clearInterval(timerInterval);
+  
+  // Guardar en Supabase con fecha actual
+  var elapsedSeconds = Math.max(0, (currentTest.duration || 0) - currentTest.time);
+  var tiempoUsado = elapsedSeconds + ' seconds'; // Formato válido para tipo interval de PostgreSQL
+  console.log('Guardando resultado:', {
+    tipo_test: currentTest.cat,
+    puntuacion: currentTest.score,
+    total_preguntas: currentTest.questions.length,
+    tiempo_usado: tiempoUsado
+  });
+  
+  client.from('resultados').insert(resultPayload({
+    tipo_test: currentTest.cat,
+    puntuacion: currentTest.score,
+    total_preguntas: currentTest.questions.length,
+    tiempo_usado: tiempoUsado,
+    fecha: new Date().toISOString(),
+    detalles: currentTest.answers // Guardar respuestas detalladas
+  })).then(function(res) {
+    console.log('Resultado guardado correctamente:', res);
+    // Verificar que se guardó
+    resultsQuery().limit(1).then(function(check) {
+      console.log('Último registro:', check.data);
+    });
+  }).catch(function(err) {
+    console.error('Error guardando:', err);
+    if (handleProfileColumnError(err)) {
+      alert('Falta añadir la columna perfil en Supabase. El test se ha completado, pero no se pudo guardar por perfil.');
+      return;
+    }
+    alert('Error al guardar el test: ' + err.message);
+  });
+  
+  hideAllScreens();
+  document.getElementById('results').className = '';
+  
+  var nota = ((currentTest.score / currentTest.questions.length) * 10).toFixed(2);
+  var aciertos = currentTest.score;
+  var errores = currentTest.questions.length - currentTest.score;
+  var tiempo = formatDuration(elapsedSeconds);
+  
+  document.getElementById('results-content').innerHTML = 
+    '<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin: 20px 0;">' +
+      '<div style="background: #f0fdf4; padding: 15px; border-radius: 8px; text-align: center;">' +
+        '<div style="font-size: 28px; font-weight: bold; color: #16a34a;">' + aciertos + '</div>' +
+        '<div style="font-size: 13px; color: #666;">Aciertos</div>' +
+      '</div>' +
+      '<div style="background: #fef2f2; padding: 15px; border-radius: 8px; text-align: center;">' +
+        '<div style="font-size: 28px; font-weight: bold; color: #ef4444;">' + errores + '</div>' +
+        '<div style="font-size: 13px; color: #666;">Errores</div>' +
+      '</div>' +
+      '<div style="background: #eff6ff; padding: 15px; border-radius: 8px; text-align: center;">' +
+        '<div style="font-size: 28px; font-weight: bold; color: #3b82f6;">' + nota + '</div>' +
+        '<div style="font-size: 13px; color: #666;">Nota (0-10)</div>' +
+      '</div>' +
+    '</div>' +
+    '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0; text-align: center;">' +
+      '<div style="font-size: 14px; color: #666;">Tiempo usado</div>' +
+      '<div style="font-size: 20px; font-weight: bold; color: #333; margin-top: 5px;">' + tiempo + '</div>' +
+    '</div>' +
+    '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0; text-align: center;">' +
+      '<div style="font-size: 14px; color: #666;">Total preguntas</div>' +
+      '<div style="font-size: 20px; font-weight: bold; color: #333; margin-top: 5px;">' + currentTest.questions.length + '</div>' +
+    '</div>' +
+    '<button class="secondary" onclick="showCurrentMistakes()" style="margin-top: 15px;">Ver fallos de este test</button>';
+}
+
+function buildQuestionsFromMistakes(results) {
+  var seen = {};
+  var questions = [];
+  results.forEach(function(r) {
+    var detalles = r.detalles || [];
+    detalles.forEach(function(d) {
+      if (d.es_correcta) return;
+      var key = d.pregunta_id || d.pregunta;
+      if (!key || seen[key] || !d.opciones || d.opciones.length < 4) return;
+      seen[key] = true;
+      questions.push({
+        id: d.pregunta_id,
+        enunciado: d.pregunta,
+        categoria: d.categoria || 'Repaso',
+        opcion_a: d.opciones[0],
+        opcion_b: d.opciones[1],
+        opcion_c: d.opciones[2],
+        opcion_d: d.opciones[3],
+        respuesta_correcta: d.respuesta_correcta,
+        explicacion: d.explicacion
+      });
+    });
+  });
+  return questions;
+}
+
+function startMistakeReview() {
+  setLoading('Buscando tus preguntas falladas...');
+  resultsQuery().limit(100).then(function(res) {
+    var questions = buildQuestionsFromMistakes(res.data || []);
+    if (questions.length === 0) {
+      hideAllScreens();
+      document.getElementById('app').className = '';
+      
+      // Mostrar mensaje elegante en lugar de un alert feo
+      var statsDiv = document.getElementById('stats');
+      var originalContent = statsDiv.innerHTML;
+      statsDiv.innerHTML = '<div class="card" style="border: 2px solid var(--success); background: rgba(16, 185, 129, 0.1);"><p style="text-align: center; font-weight: bold; color: var(--success); margin: 0;">🎉 ¡Increíble! No tienes fallos pendientes de repasar. Sigue así.</p></div>' + originalContent;
+      
+      setTimeout(function() {
+        // Desplazar hacia el mensaje
+        window.scrollTo({ top: statsDiv.offsetTop - 100, behavior: 'smooth' });
+      }, 100);
+      
+      return;
+    }
+    startLoadedTest('Repaso de fallos', questions.slice(0, 30), questions.length * 45);
+  }).catch(function(err) {
+    console.error('Error cargando fallos:', err);
+    if (handleProfileColumnError(err)) {
+      alert('Falta añadir la columna perfil en Supabase para separar los fallos por perfil.');
+      showAppForProfile();
+      return;
+    }
+    backHome();
+    alert('Error cargando el repaso de fallos');
+  });
+}
+
+function showCurrentMistakes() {
+  if (!currentTest || !currentTest.answers) return;
+  var detalles = currentTest.answers.filter(function(d) { return !d.es_correcta; });
+  hideAllScreens();
+  document.getElementById('test-details').className = '';
+  document.getElementById('details-title').textContent = 'Fallos de este test';
+  if (detalles.length === 0) {
+    document.getElementById('details-content').innerHTML = '<p style="color: #16a34a; text-align: center; padding: 30px;">No has fallado ninguna pregunta.</p>';
+    return;
+  }
+  document.getElementById('details-content').innerHTML = renderDetailsList(detalles);
+}
+
+function loadStats() {
+  console.log('Cargando estadísticas...');
+  resultsQuery().limit(50).then(function(res) {
+    console.log('Respuesta de resultados:', res);
+    if (res.data && res.data.length > 0) {
+      lastResults = res.data;
+      console.log('Número de tests encontrados:', res.data.length);
+      var html = renderCategoryStats(res.data);
+      html += '<h3 style="margin: 20px 0 15px 0; color: var(--text);">Historial de Tests</h3>';
+      html += '<div style="overflow-x: auto;"><table style="width: 100%; border-collapse: collapse; background: var(--surface); border-radius: 8px; overflow: hidden; border: 1px solid var(--border);">';
+      html += '<thead><tr style="background: #1e3a5f; color: white;">';
+      html += '<th style="padding: 12px; text-align: left; font-size: 13px;">Fecha</th>';
+      html += '<th style="padding: 12px; text-align: left; font-size: 13px;">Tipo</th>';
+      html += '<th style="padding: 12px; text-align: center; font-size: 13px;">Aciertos</th>';
+      html += '<th style="padding: 12px; text-align: center; font-size: 13px;">Total</th>';
+      html += '<th style="padding: 12px; text-align: center; font-size: 13px;">Nota</th>';
+      html += '<th style="padding: 12px; text-align: center; font-size: 13px;">Tiempo</th>';
+      html += '</tr></thead><tbody>';
+      
+      res.data.forEach(function(r, i) {
+        var nota = ((r.puntuacion / r.total_preguntas) * 10).toFixed(1);
+        var fecha = new Date(r.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        var bgColor = i % 2 === 0 ? 'var(--surface-soft)' : 'var(--surface)';
+        var notaColor = nota >= 5 ? '#16a34a' : '#ef4444';
+        
+        html += '<tr onclick="showTestDetails(' + r.id + ')" style="background: ' + bgColor + '; border-bottom: 1px solid var(--border); cursor: pointer;" onmouseover="this.style.background=\'rgba(37, 99, 235, 0.12)\'" onmouseout="this.style.background=\'' + bgColor + '\'">';
+        html += '<td style="padding: 12px; font-size: 13px; color: var(--muted);">' + fecha + '</td>';
+        html += '<td style="padding: 12px; font-size: 13px; font-weight: 500; color: var(--text);">' + (r.tipo_test || 'General') + '</td>';
+        html += '<td style="padding: 12px; text-align: center; font-size: 14px; font-weight: bold; color: #16a34a;">' + r.puntuacion + '</td>';
+        html += '<td style="padding: 12px; text-align: center; font-size: 14px; color: var(--text);">' + r.total_preguntas + '</td>';
+        html += '<td style="padding: 12px; text-align: center; font-size: 16px; font-weight: bold; color: ' + notaColor + ';">' + nota + '</td>';
+        html += '<td style="padding: 12px; text-align: center; font-size: 13px; color: var(--muted);">' + (r.tiempo_usado || '-') + '</td>';
+        html += '</tr>';
+      });
+      
+      html += '</tbody></table></div>';
+      html += '<p style="margin-top: 15px; font-size: 12px; color: var(--muted); text-align: center;">Total: ' + res.data.length + ' tests realizados</p>';
+      document.getElementById('stats').innerHTML = html;
+    } else {
+      lastResults = [];
+      document.getElementById('stats').innerHTML = '<div style="text-align: center; padding: 40px 20px; color: var(--muted);"><p style="font-size: 16px; margin-bottom: 10px;">📝</p><p>No hay tests realizados aún para ' + (currentProfile || 'este perfil') + '</p><p style="font-size: 13px; margin-top: 10px;">Completa tu primer test para ver el historial aquí</p></div>';
+    }
+  }).catch(function(err) {
+    console.error('Error cargando stats:', err);
+    if (handleProfileColumnError(err)) {
+      document.getElementById('stats').innerHTML = '<p style="color: var(--muted);">Para separar perfiles, ejecuta primero el SQL de perfiles en Supabase.</p>';
+      return;
+    }
+    document.getElementById('stats').innerHTML = '<p style="color: red;">Error cargando historial</p>';
+  });
+}
+
+function renderCategoryStats(results) {
+  var stats = {};
+  results.forEach(function(r) {
+    var name = r.tipo_test || 'General';
+    if (!stats[name]) stats[name] = { score: 0, total: 0, tests: 0 };
+    stats[name].score += Number(r.puntuacion || 0);
+    stats[name].total += Number(r.total_preguntas || 0);
+    stats[name].tests++;
+  });
+  var names = Object.keys(stats).sort(function(a, b) {
+    var pa = stats[a].total ? stats[a].score / stats[a].total : 0;
+    var pb = stats[b].total ? stats[b].score / stats[b].total : 0;
+    return pa - pb;
+  });
+  if (names.length === 0) return '';
+  var html = '<h3 style="margin: 20px 0 15px 0; color: var(--text);">Rendimiento por categoría</h3>';
+  html += '<div class="progress-list">';
+  names.forEach(function(name) {
+    var item = stats[name];
+    var percent = item.total ? Math.round((item.score / item.total) * 100) : 0;
+    var color = percent >= 70 ? '#16a34a' : (percent >= 50 ? '#f59e0b' : '#ef4444');
+    html += '<div>';
+    html += '<div class="progress-row"><strong>' + name + '</strong><span style="color: ' + color + '; font-weight: bold;">' + percent + '%</span></div>';
+    html += '<div class="progress-track"><div class="progress-bar" style="width: ' + percent + '%; background: ' + color + ';"></div></div>';
+    html += '<div class="muted">' + item.score + ' aciertos de ' + item.total + ' preguntas · ' + item.tests + ' tests</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  html += '<p class="muted">Arriba aparecen primero las áreas más flojas, para decidir qué repasar antes.</p>';
+  return html;
+}
+
+function renderDetailsList(detalles) {
+  var html = '<h3 style="margin: 20px 0 15px 0; color: #333; border-top: 1px solid #e5e7eb; padding-top: 20px;">Preguntas y Respuestas</h3>';
+  detalles.forEach(function(d, i) {
+    var bgColor = d.es_correcta ? '#f0fdf4' : '#fef2f2';
+    var borderColor = d.es_correcta ? '#16a34a' : '#ef4444';
+    var icon = d.es_correcta ? '✓' : '✗';
+
+    html += '<div style="background: ' + bgColor + '; border-left: 4px solid ' + borderColor + '; padding: 15px; margin: 10px 0; border-radius: 6px;">';
+    html += '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">';
+    html += '<span style="font-weight: bold; color: #333;">Pregunta ' + (i + 1) + '</span>';
+    html += '<span style="font-size: 18px; color: ' + borderColor + ';">' + icon + '</span>';
+    html += '</div>';
+    html += '<p style="margin: 10px 0; color: #333; line-height: 1.5;">' + (d.pregunta || 'Pregunta sin enunciado') + '</p>';
+
+    if (d.opciones && d.opciones.length > 0) {
+      html += '<div style="margin: 10px 0;">';
+      var letras = ['A', 'B', 'C', 'D'];
+      d.opciones.forEach(function(op, idx) {
+        var isUser = letras[idx] === d.respuesta_usuario;
+        var isCorrect = letras[idx] === d.respuesta_correcta;
+        var style = 'padding: 8px 12px; margin: 5px 0; border-radius: 4px; font-size: 14px; color: black;';
+        if (isCorrect) {
+          style += ' background: #d1fae5; border: 2px solid #16a34a;';
+        } else if (isUser && !isCorrect) {
+          style += ' background: #fee2e2; border: 2px solid #ef4444;';
+        } else {
+          style += ' background: #f9fafb; border: 1px solid #e5e7eb;';
+        }
+        html += '<div style="' + style + '"><strong>' + letras[idx] + ':</strong> ' + op;
+        if (isCorrect) html += ' ✓ Correcta';
+        if (isUser && !isCorrect) html += ' ← Tu respuesta';
+        html += '</div>';
+      });
+      html += '</div>';
+    }
+
+    if (d.explicacion) {
+      html += '<div style="background: white; padding: 10px; margin-top: 10px; border-radius: 4px; border: 1px solid #e5e7eb;">';
+      html += '<strong style="color: #3b82f6;">Explicación:</strong>';
+      html += '<p style="margin: 5px 0 0 0; color: #333; font-size: 14px;">' + d.explicacion + '</p>';
+      html += '</div>';
+    }
+    html += '</div>';
+  });
+  return html;
+}
+
+function backHome() {
+  if (timerInterval) clearInterval(timerInterval);
+  hideAllScreens();
+  document.getElementById('app').className = '';
+  loadStats();
+}
+
+function backToProfile() {
+  if (timerInterval) clearInterval(timerInterval);
+  hideAllScreens();
+  document.getElementById('app').className = '';
+  loadStats();
+}
+
+function showTestDetails(resultId) {
+  var query = client.from('resultados').select('*').eq('id', resultId);
+  if (currentProfile) query = query.eq('perfil', currentProfile);
+  query.single().then(function(res) {
+    if (res.data) {
+      var r = res.data;
+      var detalles = r.detalles || [];
+      var nota = ((r.puntuacion / r.total_preguntas) * 10).toFixed(1);
+      
+      hideAllScreens();
+      document.getElementById('test-details').className = '';
+      document.getElementById('details-title').textContent = 'Detalles del Test';
+      
+      var html = '<div style="margin-bottom: 20px;">';
+      html += '<p style="color: #666; font-size: 14px;">' + new Date(r.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + '</p>';
+      html += '<h3 style="margin: 10px 0; color: #333;">' + (r.tipo_test || 'General') + ' - Nota: ' + nota + '</h3>';
+      html += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0;">';
+      html += '<div style="background: #f0fdf4; padding: 10px; border-radius: 6px; text-align: center;"><div style="font-size: 20px; font-weight: bold; color: #16a34a;">' + r.puntuacion + '</div><div style="font-size: 12px; color: #666;">Aciertos</div></div>';
+      html += '<div style="background: #fef2f2; padding: 10px; border-radius: 6px; text-align: center;"><div style="font-size: 20px; font-weight: bold; color: #ef4444;">' + (r.total_preguntas - r.puntuacion) + '</div><div style="font-size: 12px; color: #666;">Errores</div></div>';
+      html += '</div></div>';
+      
+      if (detalles.length > 0) {
+        html += renderDetailsList(detalles);
+      } else {
+        html += '<p style="color: #999; text-align: center; padding: 30px;">No hay detalles disponibles para este test</p>';
+      }
+      
+      document.getElementById('details-content').innerHTML = html;
+    }
+  }).catch(function(err) {
+    console.error('Error cargando detalles:', err);
+    if (handleProfileColumnError(err)) {
+      alert('Falta añadir la columna perfil en Supabase para ver detalles separados por perfil.');
+      return;
+    }
+    alert('Error cargando los detalles del test');
+  });
+}
+
+function startSurvival() {
+  setLoading('Preparando modo supervivencia...');
+  
+  // Fetch questions from TEMARIO categories ONLY (exclude psychometric)
+  var categories = temarioCategories;
+  var allQuestions = [];
+  var completed = 0;
+  
+  categories.forEach(function(cat) {
+    client.from('preguntas').select('*').eq('categoria', getDbCategoryName(cat)).limit(20).then(function(res) {
+      if (res.data && res.data.length > 0) {
+        allQuestions = allQuestions.concat(res.data);
+      }
+      completed++;
+      if (completed === categories.length) {
+        if (allQuestions.length === 0) {
+          alert('No hay preguntas disponibles');
+          backHome();
+          return;
+        }
+        startLoadedTest('Supervivencia', allQuestions, 30, { survival: true });
+      }
+    }).catch(function(err) {
+      console.error('Error:', err);
+      completed++;
+      if (completed === categories.length && allQuestions.length > 0) {
+        startLoadedTest('Supervivencia', allQuestions, 30, { survival: true });
+      }
+    });
+  });
+}
+
+function startSurvivalTimer() {
+  if (timerInterval) clearInterval(timerInterval);
+  updateTimer();
+  timerInterval = setInterval(function() {
+    currentTest.time--;
+    updateTimer();
+    if (currentTest.time <= 0) {
+      clearInterval(timerInterval);
+      gameOver('⏱️ Tiempo agotado');
+    }
+  }, 1000);
+}
+
+function gameOver(reason) {
+  clearInterval(timerInterval);
+  hideAllScreens();
+  var elapsedSeconds = (currentTest.index * 30) + Math.max(0, 30 - currentTest.time);
+  
+  // Guardar resultado en Supabase
+  client.from('resultados').insert(resultPayload({
+    tipo_test: 'Supervivencia',
+    puntuacion: currentTest.score,
+    total_preguntas: currentTest.index + 1,
+    tiempo_usado: elapsedSeconds + ' seconds',
+    fecha: new Date().toISOString(),
+    detalles: currentTest.answers
+  })).then(function(res) {
+    console.log('Supervivencia guardada:', res);
+  }).catch(function(err) {
+    console.error('Error guardando supervivencia:', err);
+  });
+  
+  var html = '<div style="text-align: center; padding: 40px 20px;">';
+  html += '<div style="font-size: 80px; margin-bottom: 20px;">💀</div>';
+  html += '<h2 style="color: #ef4444; font-size: 32px; margin-bottom: 10px;">GAME OVER</h2>';
+  html += '<p style="font-size: 18px; color: #666; margin-bottom: 20px;">' + reason + '</p>';
+  html += '<div style="background: #fef2f2; padding: 20px; border-radius: 10px; margin: 20px 0;">';
+  html += '<div style="font-size: 48px; font-weight: bold; color: #ef4444;">' + currentTest.score + '</div>';
+  html += '<div style="font-size: 14px; color: #666;">Preguntas acertadas</div>';
+  html += '</div>';
+  html += '<button onclick="backHome()" style="background: #666; margin-top: 20px;">Volver al inicio</button>';
+  html += '</div>';
+  
+  var gameOverDiv = document.getElementById('game-over');
+  if (!gameOverDiv) {
+    gameOverDiv = document.createElement('div');
+    gameOverDiv.id = 'game-over';
+    document.body.appendChild(gameOverDiv);
+  }
+  gameOverDiv.className = '';
+  gameOverDiv.innerHTML = '<div class="card">' + html + '</div>';
+}
+
+
+function startWordGame() {
+  hideAllScreens();
+  document.getElementById('word-game').className = '';
+  wordGameState.points = 0;
+  wordGameState.index = 0;
+  wordGameState.mistakes = 0;
+  document.getElementById('game-points').textContent = '0';
+  updateLivesDisplay();
+  wordGameDefinitions = shuffle(wordGameDefinitions);
+  loadNextWord();
+}
+
+function updateLivesDisplay() {
+  var lives = 3 - wordGameState.mistakes;
+  var hearts = "";
+  for (var i = 0; i < 3; i++) {
+    hearts += i < lives ? "❤️" : "🖤";
+  }
+  document.getElementById('game-lives').textContent = "Vidas: " + hearts;
+}
+
+function loadNextWord() {
+  var item = wordGameDefinitions[wordGameState.index];
+  wordGameState.currentWord = item.word.toUpperCase();
+  wordGameState.currentHint = item.hint;
+  wordGameState.guessedLetters = [];
+  wordGameState.mistakes = 0; // Reset mistakes for each word? Or per game?
+  // User said "a la tercera letra que salga que perdido", 
+  // usually this means per game, but "perder" usually resets for the next word in some games.
+  // However, looking at "3 vidas", it makes more sense as 3 mistakes per WORD or per total?
+  // Let's do 3 mistakes PER WORD to make it a bit easier but still challenging.
+  // Wait, if I lose the game, I should go to a game over screen.
+  
+  updateLivesDisplay();
+  document.getElementById('game-definition').textContent = wordGameState.currentHint;
+  document.getElementById('skip-word').style.display = 'none';
+  
+  renderWordDisplay();
+  renderKeyboard();
+}
+
+function renderWordDisplay() {
+  var container = document.getElementById('word-container');
+  container.innerHTML = '';
+  
+  for (var i = 0; i < wordGameState.currentWord.length; i++) {
+    var char = wordGameState.currentWord[i];
+    var normChar = normalizeStr(char);
+    var div = document.createElement('div');
+    div.className = 'letter-box';
+    
+    if (char === ' ' || char === '-') {
+      div.textContent = char;
+      div.style.border = 'none';
+      div.style.background = 'none';
+    } else if (wordGameState.guessedLetters.indexOf(normChar) !== -1) {
+      div.textContent = char; // Mostramos el carácter original (con tilde si la tiene)
+      div.classList.add('correct');
+    }
+    
+    container.appendChild(div);
+  }
+}
+
+function renderKeyboard() {
+  var container = document.getElementById('game-keyboard');
+  container.innerHTML = '';
+  
+  var rows = [
+    "QWERTYUIOP",
+    "ASDFGHJKLÑ",
+    "ZXCVBNM"
+  ];
+  
+  rows.forEach(function(row) {
+    var rowDiv = document.createElement('div');
+    rowDiv.style.display = 'flex';
+    rowDiv.style.justifyContent = 'center';
+    rowDiv.style.gap = '4px';
+    rowDiv.style.width = '100%';
+    rowDiv.style.marginBottom = '6px';
+    
+    row.split("").forEach(function(letter) {
+      var btn = document.createElement('button');
+      btn.className = 'key';
+      btn.textContent = letter;
+      btn.style.width = 'auto';
+      btn.style.flex = '1';
+      btn.style.padding = '10px 4px';
+      btn.style.fontSize = '14px';
+      
+      if (wordGameState.guessedLetters.indexOf(letter) !== -1) {
+        btn.classList.add('used');
+      }
+      
+      btn.onclick = function() { guessLetter(letter); };
+      rowDiv.appendChild(btn);
+    });
+    container.appendChild(rowDiv);
+  });
+}
+
+function guessLetter(letter) {
+  var normalizedInput = normalizeStr(letter);
+  if (wordGameState.guessedLetters.indexOf(normalizedInput) !== -1) return;
+  
+  wordGameState.guessedLetters.push(normalizedInput);
+  
+  var normalizedWord = normalizeStr(wordGameState.currentWord);
+  
+  if (normalizedWord.indexOf(normalizedInput) === -1) {
+    // Error feedback
+    wordGameState.mistakes++;
+    updateLivesDisplay();
+    
+    var keys = document.querySelectorAll('.key');
+    keys.forEach(function(k) {
+      if (normalizeStr(k.textContent) === normalizedInput) {
+        k.style.background = 'var(--danger)';
+        k.style.color = 'white';
+        setTimeout(function() { k.style.background = ''; k.style.color = ''; }, 500);
+      }
+    });
+
+    if (wordGameState.mistakes >= 3) {
+      // Game Over for this word
+      setTimeout(function() {
+        alert('💥 ¡HAS PERDIDO! La palabra era: ' + wordGameState.currentWord);
+        backHome();
+      }, 300);
+      return;
+    }
+  }
+  
+  renderWordDisplay();
+  renderKeyboard();
+  checkWin();
+}
+
+function checkWin() {
+  var normalizedWord = normalizeStr(wordGameState.currentWord);
+  var won = true;
+  
+  for (var i = 0; i < normalizedWord.length; i++) {
+    var char = normalizedWord[i];
+    if (char !== ' ' && char !== '-' && wordGameState.guessedLetters.indexOf(char) === -1) {
+      won = false;
+      break;
+    }
+  }
+  
+  if (won) {
+    wordGameState.points += 10;
+    document.getElementById('game-points').textContent = wordGameState.points;
+    
+    var skipBtn = document.getElementById('skip-word');
+    skipBtn.style.display = 'block';
+    skipBtn.textContent = '¡Correcto! Siguiente';
+    skipBtn.style.background = 'var(--success)';
+    
+    // Feedback visual
+    var boxes = document.querySelectorAll('.letter-box');
+    boxes.forEach(function(b) { b.classList.add('correct'); });
+    
+    setTimeout(nextWord, 1500);
+  }
+}
+
+function nextWord() {
+  wordGameState.index++;
+  if (wordGameState.index >= wordGameDefinitions.length) {
+    alert('¡Felicidades! Has completado todas las palabras. Puntos totales: ' + wordGameState.points);
+    backHome();
+  } else {
+    loadNextWord();
+  }
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
