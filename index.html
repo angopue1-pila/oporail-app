@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpoRail - Preparación Ferroviaria</title>
+  
+  <!-- Font and Styles -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="src/css/main.css">
+  
+  <!-- Supabase & Charts Library -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<div id="profile-screen" class="hidden">
+  <div class="app-header">
+    <div class="brand-title">
+      <div class="brand-mark">OR</div>
+      <div class="brand-copy">
+        <h1>OpoRail</h1>
+        <p>Elige quién va a entrenar para separar resultados y fallos.</p>
+      </div>
+    </div>
+    <div class="profile-actions">
+      <button id="back-to-app" class="theme-toggle" onclick="backHome()" style="margin-right: 8px;">Volver</button>
+      <button id="theme-toggle-profile" class="theme-toggle" onclick="toggleTheme()">Modo oscuro</button>
+    </div>
+  </div>
+  
+  <div class="card" style="border: 1px solid var(--primary); background: linear-gradient(135deg, var(--surface), rgba(59, 130, 246, 0.05));">
+    <h2>☁️ Sincronización en la Nube</h2>
+    <p class="muted">1. Introduce un código secreto para vincular tus dispositivos.<br>2. <strong>Importante:</strong> Si es la primera vez con este código, deberás <u>crear tu perfil</u> abajo para empezar a guardar datos.</p>
+    <div class="profile-form">
+      <input id="sync-id-input" type="text" placeholder="Tu código secreto (ej: mi-oposicion-7)" maxlength="50">
+      <button class="small-button" onclick="setSyncId()">Vincular</button>
+    </div>
+    <div id="sync-status" style="margin-top: 10px; font-size: 13px; font-weight: 600; color: var(--primary);"></div>
+  </div>
+
+  <div class="card">
+    <h2>Perfiles</h2>
+    <p class="muted">Cada perfil guarda su historial, estadísticas y repaso de fallos por separado.</p>
+    <div id="profile-list" class="profile-list"></div>
+    <div class="profile-form">
+      <input id="new-profile-name" type="text" placeholder="Nombre del perfil" maxlength="30">
+      <button onclick="createProfile()">Crear perfil</button>
+    </div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="app-header">
+    <div class="brand-title">
+      <div class="brand-mark">OR</div>
+      <div class="brand-copy">
+        <h1>OpoRail</h1>
+        <p>Entrena, mide tu progreso y repasa tus fallos.</p>
+      </div>
+    </div>
+    <button id="theme-toggle" class="theme-toggle" onclick="toggleTheme()">Modo oscuro</button>
+  </div>
+  <div class="profile-bar">
+    <div>
+      <span class="muted">Perfil activo</span><br>
+      <strong id="current-profile-label">Sin perfil</strong>
+      <span id="streak-container" class="hidden" style="margin-left: 10px; background: rgba(245, 158, 11, 0.1); color: #f59e0b; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 800;">
+        🔥 <span id="streak-count">0</span> días
+      </span>
+    </div>
+    <div class="profile-actions">
+      <button class="small-button secondary" onclick="showProfileScreen()">Cambiar</button>
+      <button class="small-button" onclick="renameCurrentProfile()">Renombrar</button>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Entrenamiento</h2>
+    <div class="grid">
+      <button class="category-button" onclick="startTest('Actividad Comercial', 20, 15)"><span>Actividad Comercial</span><span class="category-count" data-category-count="Actividad Comercial">...</span></button>
+      <button class="category-button" onclick="startTest('Conocimientos Ferroviarios', 20, 15)"><span>Conocimientos Ferroviarios</span><span class="category-count" data-category-count="Conocimientos Ferroviarios">...</span></button>
+      <button class="category-button" onclick="startTest('Cultura de la Seguridad', 20, 15)"><span>Cultura de la Seguridad</span><span class="category-count" data-category-count="Cultura de la Seguridad">...</span></button>
+      <button class="category-button" onclick="startTest('Experiencia de Cliente', 20, 15)"><span>Experiencia de Cliente</span><span class="category-count" data-category-count="Experiencia de Cliente">...</span></button>
+      <button class="category-button" onclick="startTest('II Plan de Igualdad', 20, 15)"><span>II Plan de Igualdad</span><span class="category-count" data-category-count="II Plan de Igualdad">...</span></button>
+      <button class="category-button" onclick="startTest('Numérico', 20, 15)"><span>Numérico</span><span class="category-count" data-category-count="Numérico">...</span></button>
+      <button class="category-button" onclick="startTest('Verbal', 20, 15)"><span>Verbal</span><span class="category-count" data-category-count="Verbal">...</span></button>
+      <button class="category-button" onclick="startTest('Series de Figuras', 20, 15)"><span>Series de Figuras</span><span class="category-count" data-category-count="Series de Figuras">...</span></button>
+      <button class="category-button" onclick="startTest('Atención', 20, 15)"><span>Atención</span><span class="category-count" data-category-count="Atención">...</span></button>
+    </div>
+    <div class="category-summary">
+      <div class="summary-stat"><strong id="total-question-count">...</strong><span>preguntas disponibles</span></div>
+      <div class="summary-stat"><strong id="largest-category-count">...</strong><span>categoría con más preguntas</span></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Simulacro de Examen</h2>
+    <p>60 preguntas en 30 minutos</p>
+    <button onclick="startSimulacro()">Iniciar Simulacro</button>
+  </div>
+  <div class="card">
+    <h2>Repaso Inteligente</h2>
+    <p class="muted">Vuelve a practicar solo las preguntas que has fallado en tests anteriores.</p>
+    <button class="secondary" onclick="startMistakeReview()">Repasar mis fallos</button>
+  </div>
+  <div class="card mode-card">
+    <h2 style="color: var(--danger);">🔥 Modo Supervivencia</h2>
+    <p>30 segundos por pregunta. ¡Un error y GAME OVER!</p>
+    <button class="danger-button" onclick="startSurvival()">Iniciar Supervivencia</button>
+  </div>
+  <div class="card game-card">
+    <h2 style="color: var(--success);">🧩 El Tren de las Palabras</h2>
+    <p>Adivina el término técnico a partir de su definición oficial.</p>
+    <button class="success-button" onclick="startWordGame()">Jugar ahora</button>
+  </div>
+  <div class="card">
+    <h2>📈 Evolución de Notas</h2>
+    <div style="height: 250px; margin-bottom: 20px;">
+      <canvas id="progressChart"></canvas>
+    </div>
+    <h3 style="margin-top: 30px;">📊 Rendimiento por Categoría</h3>
+    <div style="height: 300px; margin-bottom: 20px;">
+      <canvas id="categoryChart"></canvas>
+    </div>
+    <div id="stats"></div>
+    <h3 style="margin-top: 30px;">🏆 Mis Logros</h3>
+    <div id="achievements-list" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;">
+      <p class="muted">Completa tests para desbloquear medallas.</p>
+    </div>
+
+    <h3 style="margin-top: 30px;">🏆 Ránking Global (Top 10)</h3>
+    <div id="global-ranking" style="background: var(--surface-soft); border-radius: 16px; border: 1px solid var(--border); overflow: hidden; margin-top: 10px;">
+      <p class="muted" style="padding: 20px; text-align: center;">Cargando clasificación...</p>
+    </div>
+
+    <h3 style="margin-top: 30px;">📜 Historial de Exámenes</h3>
+    <div id="history-list" style="margin-top: 10px;">
+      <p class="muted">Cargando historial...</p>
+    </div>
+    <button class="secondary" style="width: 100%; margin-top: 10px;" onclick="showFullHistory()">Ver historial completo</button>
+  </div>
+</div>
+
+<div id="history-screen" class="hidden">
+  <div class="card">
+    <h2>📜 Tu Historial</h2>
+    <div id="full-history-content"></div>
+    <button onclick="backHome()" class="secondary" style="margin-top: 20px;">Volver al inicio</button>
+  </div>
+</div>
+
+<div id="word-game" class="hidden">
+  <div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <h2 style="color: var(--success);">El Tren de las Palabras</h2>
+      <div style="text-align: right;">
+        <div style="font-weight: 800; color: var(--primary);">Puntos: <span id="game-points">0</span></div>
+        <div id="game-lives" style="font-weight: 800; color: var(--danger); font-size: 14px;">Vidas: ❤️❤️❤️</div>
+      </div>
+    </div>
+    <div id="game-definition" class="question" style="text-align: center; font-style: italic;">
+      Cargando definición...
+    </div>
+    <div id="word-container" class="word-display"></div>
+    <div id="game-keyboard" class="keyboard"></div>
+    <div style="margin-top: 30px; display: flex; gap: 10px;">
+      <button class="secondary small-button" onclick="backHome()">Rendirse</button>
+      <button id="skip-word" class="small-button" onclick="nextWord()" style="background: var(--muted); display: none;">Siguiente</button>
+    </div>
+  </div>
+</div>
+
+<div id="loading" class="hidden">
+  <div class="card loading" id="loading-text">Cargando...</div>
+</div>
+
+<div id="test" class="hidden">
+  <div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <h2 id="test-title"></h2>
+      <div id="timer" class="timer">00:00</div>
+    </div>
+    <div id="counter" style="color: #666; margin: 10px 0;"></div>
+    <div id="question-meta" style="margin-bottom: 10px;"></div>
+    <div id="question" class="question"></div>
+    <div id="options"></div>
+    <button onclick="backHome()" style="margin-top: 20px; background: #666;">Volver</button>
+  </div>
+</div>
+
+<div id="results" class="hidden">
+  <div class="card">
+    <h2>Resultados</h2>
+    <div id="results-content"></div>
+    <button onclick="backHome()" style="margin-top: 20px;">Volver</button>
+  </div>
+</div>
+
+<div id="test-details" class="hidden">
+  <div class="card">
+    <h2 id="details-title">Detalles del Test</h2>
+    <div id="details-content"></div>
+    <button onclick="backToProfile()" style="margin-top: 20px; background: #666;">Volver al Perfil</button>
+  </div>
+</div>
+
+<!-- Scripts Modularizados -->
+<script src="src/js/init-core.js"></script>
+<script src="src/js/api.js"></script>
+<script src="src/js/word-game.js"></script>
+<script src="src/js/app.js"></script>
+
+</body>
+</html>
